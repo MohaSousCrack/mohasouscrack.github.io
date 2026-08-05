@@ -193,6 +193,7 @@ td .neuf { display: inline-block; margin-left: 6px; padding: 1px 5px; border-rad
            letter-spacing: .04em; color: var(--ink);
            background: var(--warning); vertical-align: 1px; }
 td .neuf.orange { background: var(--serious); }
+td .neuf.vert { background: var(--good); color: #fff; }
 .empty { padding: 26px 16px; color: var(--muted); font-size: 13px; }
 
 /* fiche commune */
@@ -219,6 +220,8 @@ td .neuf.orange { background: var(--serious); }
           padding: 9px 11px; border-radius: 8px; background: var(--plane);
           border: 1px solid var(--border); border-left: 3px solid var(--warning); }
 .alerte b { color: var(--ink); font-weight: 650; }
+.alerte.neuve { border-left-color: var(--good); }
+.alerte.cours { border-left-color: var(--series-1); }
 .comp { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 8px;
         font-size: 12px; color: var(--ink-2); margin: 0 0 11px;
         padding: 7px 9px; border-radius: 7px; background: var(--plane);
@@ -379,8 +382,16 @@ footer code { font-size: 10.5px; color: var(--ink-2);
         <option value="1000">≥ 1 000 adr.</option>
       </select>
     </label>
-    <label title="Masquer la fibre tout juste posée et les anomalies Orange, dont l'écart n'est pas fiable">
-      <input type="checkbox" id="stable" checked> Écarts fiables</label>
+    <label>Ancienneté
+      <select id="age" title="Depuis quand la fibre est posée dans la commune">
+        <option value="tout">toutes</option>
+        <option value="neuve">fibre neuve (dernier relevé)</option>
+        <option value="cours">déploiement en cours</option>
+        <option value="posee">installée, déploiement fini</option>
+      </select>
+    </label>
+    <label title="Free, Bouygues et SFR au complet mais pas Orange : un retard de déclaration, presque jamais une absence réelle">
+      <input type="checkbox" id="stable"> Masquer les anomalies Orange</label>
     <label>Trajet
       <select id="transport">
         <option value="v">en voiture</option>
@@ -518,6 +529,10 @@ const MODES = [
     num: comptePourCombinaison, den: p => p.ftth, bins: ECART, kind: "pct",
     court: "Part", legende: () => "Part des adresses fibrées de la commune où : " +
       libelleCombinaison().toLowerCase() },
+  { id: "neuf", lbl: "Fibre posée au dernier relevé",
+    num: p => p.neuf, den: p => p.ftth, bins: ECART, kind: "pct",
+    court: "Neuve", legende: () => "Part des adresses raccordables apparues à la " +
+      "dernière publication Arcep — les foyers qui viennent tout juste d'avoir la fibre" },
   { id: "depl", lbl: "Déploiement de la fibre", num: p => p.ftth, den: p => p.tot,
     bins: COUV, kind: "pct", court: "Fibré",
     legende: () => "Part des adresses de la commune raccordables à la fibre" },
@@ -661,7 +676,8 @@ function filtrer() {
     if (p.ftth < taille) return false;
     /* La part minimale porte sur la combinaison d'opérateurs demandée. */
     if (filtreOps && partMin && comptePourCombinaison(p) / p.ftth < partMin) return false;
-    if (el("stable").checked && douteux(p)) return false;
+    if (!AGES[el("age").value](p)) return false;
+    if (el("stable").checked && orangeDouteux(p)) return false;
     if (q && !p.n.toLowerCase().includes(q)) return false;
     return true;
   });
@@ -722,7 +738,7 @@ function majListe() {
     const p = f.properties;
     const v = mode.kind === "min" ? dur(temps(p)) : pf(valeur(p));
     const neuf = frais(p)
-      ? `<span class="neuf" title="Plus de la moitié de la fibre posée au dernier relevé : l'écart entre opérateurs est peu fiable">neuf</span>`
+      ? `<span class="neuf vert" title="Fibre posée au dernier relevé : des foyers qui viennent d'y avoir droit et n'ont encore rien souscrit">neuve</span>`
       : orangeDouteux(p)
       ? `<span class="neuf orange" title="Orange seul à la traîne alors que les trois autres couvrent tout : retard de déclaration, pas une absence">Orange ?</span>`
       : "";
@@ -757,16 +773,32 @@ const orangeDouteux = p => p.ftth >= 50 &&
   p.free / p.ftth >= .95 && p.bouygues / p.ftth >= .95 &&
   p.sfr / p.ftth >= .95 && p.orange / p.ftth < .90;
 
-/* Les deux cas où l'écart affiché ne se pariera pas. */
-const douteux = p => frais(p) || orangeDouteux(p);
+/* Ancienneté du déploiement. Une commune fraîchement fibrée n'est pas un
+   défaut à cacher : c'est l'argument d'entrée le plus fort — « la fibre vient
+   d'arriver chez vous ». Et tant que le déploiement n'est pas fini, il reste
+   des prises à poser, donc des visites à refaire. */
+const enCours = p => p.tot > 0 && p.ftth / p.tot < 0.9;
+const AGES = {
+  tout:  () => true,
+  neuve: p => frais(p),
+  cours: p => enCours(p),
+  posee: p => !frais(p) && !enCours(p),
+};
 
 function alerteNeuf(p) {
   let out = "";
   if (frais(p)) {
-    out += `<div class="alerte"><b>Fibre posée très récemment</b> — ` +
-      `${nf.format(p.neuf)} des ${nf.format(p.ftth)} adresses raccordables sont ` +
-      `apparues au dernier relevé. Les opérateurs n'ouvrent pas à la même date : ` +
-      `un manquant ci-dessus a pu ouvrir depuis. À vérifier à l'adresse.</div>`;
+    out += `<div class="alerte neuve"><b>Fibre toute neuve — ${nf.format(p.neuf)} ` +
+      `adresses raccordées au dernier relevé.</b> Ces foyers viennent d'y avoir ` +
+      `droit et n'ont encore rien souscrit : c'est le moment d'y passer. ` +
+      `Revers de la médaille, les opérateurs n'ouvrent pas tous à la même date, ` +
+      `donc un manquant ci-dessus a pu ouvrir depuis — à vérifier à l'adresse.</div>`;
+  }
+  if (enCours(p)) {
+    out += `<div class="alerte cours"><b>Déploiement en cours</b> — ` +
+      `${nf.format(p.tot - p.ftth)} adresses de la commune ne sont pas encore ` +
+      `raccordables. L'opérateur d'infrastructure doit finir la zone : il y aura ` +
+      `de nouvelles prises à démarcher ici.</div>`;
   }
   if (orangeDouteux(p)) {
     out += `<div class="alerte"><b>Le chiffre Orange est probablement faux</b> — ` +
@@ -925,10 +957,11 @@ el("raz").onclick = () => {
   combi = "ou"; el("combi").value = "ou";
   mode = MODES[0]; el("mode").value = "combi";
   el("part").value = "0.05"; el("taille").value = "300";
-  el("stable").checked = true; el("q").value = "";
+  el("age").value = "tout"; el("stable").checked = false; el("q").value = "";
   dessinerChips(); majCurseur(true); filtrer();
 };
 el("part").onchange = filtrer;
+el("age").onchange = filtrer;
 dessinerChips();
 function majCurseur(remettreAuMax) {
   const s = el("tmax");

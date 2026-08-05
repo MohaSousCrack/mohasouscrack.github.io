@@ -1,12 +1,12 @@
 name: Mise à jour des données Arcep
 
-# L'Arcep publie chaque trimestre, avec environ deux mois et demi de décalage,
-# à une date qui bouge d'une fois sur l'autre. Plutôt que de deviner le jour,
-# on regarde tous les mois s'il y a du neuf : la vérification coûte une requête,
-# et le gros du travail ne part que si un nouveau trimestre est sorti.
+# L'Arcep annonce ses dates (le T2 2026 est attendu le 10 septembre 2026), mais
+# elles glissent. On regarde donc chaque lundi s'il y a du neuf : la vérification
+# coûte une requête, et le gros du travail ne part que si un nouveau trimestre
+# est sorti. Le site suit donc la publication à une semaine près.
 on:
   schedule:
-    - cron: "0 4 15 * *"        # le 15 de chaque mois, 4 h UTC
+    - cron: "0 4 * * 1"         # chaque lundi, 4 h UTC
   workflow_dispatch:
     inputs:
       forcer:
