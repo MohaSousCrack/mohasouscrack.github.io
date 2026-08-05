@@ -823,8 +823,11 @@ function alerteNeuf(p) {
       `${tard.length > 1 ? "ne desservent" : "ne dessert"} que le parc antérieur</b> — ` +
       `les ${nf.format(p.ftth - p.neuf)} adresses déjà raccordables avant la ` +
       `dernière publication, et aucune des ${nf.format(p.neuf)} nouvelles. ` +
-      `Ce décalage traduit presque toujours une déclaration en retard, ` +
-      `comblée au relevé suivant, plutôt qu'une absence de réseau.</div>`;
+      `Chez Orange et Bouygues, ce décalage est souvent une déclaration en ` +
+      `retard : sondés sur leurs propres cartes, ils desservent des adresses ` +
+      `que l'Arcep leur refuse — à Saint-Aubin-d'Aubigné, Bouygues couvre ` +
+      `quatre de ses six zones de mutualisation quand l'Arcep l'annonce absent ` +
+      `partout. Chez SFR au contraire, les absences se confirment à 99,8 %.</div>`;
   }
   if (enCours(p)) {
     out += `<div class="alerte cours"><b>Déploiement en cours</b> — ` +
