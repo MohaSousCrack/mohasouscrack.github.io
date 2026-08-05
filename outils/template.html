@@ -532,7 +532,7 @@ const MODES = [
   { id: "neuf", lbl: "Fibre posée au dernier relevé",
     num: p => p.neuf, den: p => p.ftth, bins: ECART, kind: "pct",
     court: "Neuve", legende: () => "Part des adresses raccordables apparues à la " +
-      "dernière publication Arcep — les foyers qui viennent tout juste d'avoir la fibre" },
+      "dernière publication Arcep" },
   { id: "depl", lbl: "Déploiement de la fibre", num: p => p.ftth, den: p => p.tot,
     bins: COUV, kind: "pct", court: "Fibré",
     legende: () => "Part des adresses de la commune raccordables à la fibre" },
@@ -738,7 +738,7 @@ function majListe() {
     const p = f.properties;
     const v = mode.kind === "min" ? dur(temps(p)) : pf(valeur(p));
     const neuf = frais(p)
-      ? `<span class="neuf vert" title="Fibre posée au dernier relevé : des foyers qui viennent d'y avoir droit et n'ont encore rien souscrit">neuve</span>`
+      ? `<span class="neuf vert" title="Plus de la moitié des adresses raccordables sont apparues à la dernière publication">neuve</span>`
       : orangeDouteux(p)
       ? `<span class="neuf orange" title="Orange seul à la traîne alors que les trois autres couvrent tout : retard de déclaration, pas une absence">Orange ?</span>`
       : "";
@@ -788,17 +788,17 @@ const AGES = {
 function alerteNeuf(p) {
   let out = "";
   if (frais(p)) {
-    out += `<div class="alerte neuve"><b>Fibre toute neuve — ${nf.format(p.neuf)} ` +
-      `adresses raccordées au dernier relevé.</b> Ces foyers viennent d'y avoir ` +
-      `droit et n'ont encore rien souscrit : c'est le moment d'y passer. ` +
-      `Revers de la médaille, les opérateurs n'ouvrent pas tous à la même date, ` +
-      `donc un manquant ci-dessus a pu ouvrir depuis — à vérifier à l'adresse.</div>`;
+    out += `<div class="alerte neuve"><b>Raccordement récent</b> — ` +
+      `${nf.format(p.neuf)} adresses sont devenues raccordables à la dernière ` +
+      `publication. Les opérateurs n'ouvrent pas la commercialisation à la même ` +
+      `date : un opérateur absent ci-dessus a pu ouvrir depuis. À vérifier à ` +
+      `l'adresse exacte.</div>`;
   }
   if (enCours(p)) {
     out += `<div class="alerte cours"><b>Déploiement en cours</b> — ` +
       `${nf.format(p.tot - p.ftth)} adresses de la commune ne sont pas encore ` +
-      `raccordables. L'opérateur d'infrastructure doit finir la zone : il y aura ` +
-      `de nouvelles prises à démarcher ici.</div>`;
+      `raccordables. L'opérateur d'infrastructure reste tenu d'achever la zone ` +
+      `dans son délai de complétude.</div>`;
   }
   if (orangeDouteux(p)) {
     out += `<div class="alerte"><b>Le chiffre Orange est probablement faux</b> — ` +
@@ -877,7 +877,7 @@ function fiche(p) {
       (p.fseul ? `<br><b>${nf.format(p.fseul)} adresses où Free est le seul des quatre.</b>` : "") +
       `</div>` : `<div class="note">Les quatre opérateurs se valent sur cette commune.</div>`) +
     (SITE ? `<a class="prospect" href="tournee.html#ville=${encodeURIComponent(p.n)}` +
-            `&lat=${p.lat}&lng=${p.lon}&insee=${p.c}">🏠 Prospecter cette commune</a>` : "");
+            `&lat=${p.lat}&lng=${p.lon}&insee=${p.c}">🏠 Ouvrir cette commune dans Ma tournée</a>` : "");
 }
 
 function selectionner(code, recadrer) {
@@ -894,8 +894,9 @@ function selectionner(code, recadrer) {
   const layer = couches.get(code);
   if (layer && recadrer) map.fitBounds(layer.getBounds(), { maxZoom: 12, padding: [40, 40] });
   dessiner();
-  const tr = document.querySelector(`tr[data-c="${code}"]`);
-  if (tr) tr.scrollIntoView({ block: "nearest" });
+  /* La fiche s'insère en haut du panneau : on y remonte, sinon un clic sur la
+     carte pendant qu'on parcourt la liste ne montre rien. */
+  el("aside").scrollTop = 0;
 }
 
 /* ------------------------------------------- panneaux coulissants (mobile) */
