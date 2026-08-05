@@ -431,6 +431,18 @@ def main():
             props["mk"] = s.get("mk", {})
             # adresses fibrees apparues depuis la publication precedente
             props["neuf"] = max(0, props["ftth"] - avant.get(code, 0))
+            # La commune a-t-elle ete verifiee directement chez Bouygues ?
+            fp = os.path.join(os.path.dirname(HERE), "site-prospection",
+                              "points", code + ".json")
+            if os.path.exists(fp):
+                try:
+                    with open(fp, encoding="utf-8") as f:
+                        pj = json.load(f)
+                    if pj.get("btd"):
+                        props["btd"] = pj["btd"]
+                        props["btn"] = sum(1 for x in pj.get("bt", []) if x == 1)
+                except Exception:
+                    pass
             z = zones.get(code)
             if z:
                 props["pm"] = z["pm"]

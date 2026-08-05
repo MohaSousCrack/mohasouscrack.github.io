@@ -223,6 +223,7 @@ td .neuf.vert { background: var(--good); color: #fff; }
 .alerte.neuve { border-left-color: var(--good); }
 .alerte.cours { border-left-color: var(--series-1); }
 .alerte.tard { border-left-color: var(--serious); }
+.alerte.verif { border-left-color: var(--good); }
 .comp { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 8px;
         font-size: 12px; color: var(--ink-2); margin: 0 0 11px;
         padding: 7px 9px; border-radius: 7px; background: var(--plane);
@@ -813,6 +814,12 @@ function alerteNeuf(p) {
       `publication. Les opérateurs n'ouvrent pas la commercialisation à la même ` +
       `date : un opérateur absent ci-dessus a pu ouvrir depuis. À vérifier à ` +
       `l'adresse exacte.</div>`;
+  }
+  if (p.btd) {
+    out += `<div class="alerte verif"><b>Vérifié chez Bouygues le ` +
+      `${jour(p.btd)}</b> — ${nf.format(p.btn)} bâtiments confirmés raccordables ` +
+      `par Bouygues lui-même, au-delà de ce que déclare l'Arcep. Ma tournée ` +
+      `utilise cette correction pour cette commune.</div>`;
   }
   const tard = retardataires(p);
   if (tard.length) {

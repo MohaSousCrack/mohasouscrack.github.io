@@ -559,6 +559,12 @@
         fb.className += " ok";
         fb.textContent = "✓ Fibre : " + fibreListe(h, true).join(", ");
       }
+      // Quand Bouygues a ete interroge directement, on le dit : c'est plus
+      // recent que le releve trimestriel de l'Arcep.
+      if (h.verif){
+        fb.textContent += " · Bouygues vérifié le " +
+          h.verif.slice(8, 10) + "/" + h.verif.slice(5, 7);
+      }
       wrap.appendChild(fb);
     }
     var row1 = document.createElement("div"); row1.className = "row";
@@ -1040,17 +1046,25 @@
   // Le fichier compact d'une commune -> la meme forme que geoJsonToPoints.
   function arcepVersPoints(fic){
     var voies = fic.voies || [];
+    // fic.bt : verification faite directement chez Bouygues, 1 fibre, 0 non,
+    // -1 inconnu. L'Arcep declare Bouygues absent bien apres qu'il a ouvert :
+    // quand la verification existe, c'est elle qui fait foi.
+    var bt = fic.bt || null, btd = fic.btd || null;
     // Plusieurs immeubles peuvent partager exactement le meme point (un batiment
     // decoupe en plusieurs entrees) : on numerote les doublons pour que chacun
     // garde une identite propre d'un chargement a l'autre.
     var vus = {};
-    return (fic.b || []).map(function(x){
+    return (fic.b || []).map(function(x, i){
       var voie = x[2] >= 0 ? voies[x[2]] : "";
       var addr = voie ? ((x[3] ? x[3] + " " : "") + voie) : null;
       var cle = x[0].toFixed(6) + "/" + x[1].toFixed(6);
       vus[cle] = (vus[cle] || 0) + 1;
       var id = "arcep/" + fic.insee + "/" + cle + (vus[cle] > 1 ? "/" + vus[cle] : "");
-      return { lat: x[0], lng: x[1], addr: addr, ops: x[5],
+      var ops = x[5], verif = bt ? bt[i] : undefined;
+      if (verif === 1) ops |= 4;              // Bouygues confirme
+      else if (verif === 0) ops &= ~4;        // Bouygues dément
+      return { lat: x[0], lng: x[1], addr: addr, ops: ops,
+               verif: (verif === 1 || verif === 0) ? btd : null,
                logements: x[4] > 1 ? x[4] : null, osm: id };
     });
   }
@@ -1078,7 +1092,7 @@
     pts.forEach(function(p){
       var connu = p.osm ? parId[p.osm] : null;
       if (connu){                                   // deja importe une fois
-        connu.ops = p.ops;
+        connu.ops = p.ops; connu.verif = p.verif;
         if (p.logements) connu.logements = p.logements;
         deja++;
         return;
@@ -1091,7 +1105,7 @@
         });
       }
       if (proche){
-        proche.ops = p.ops;
+        proche.ops = p.ops; proche.verif = p.verif;
         if (p.logements) proche.logements = p.logements;
         if (!proche.addr && p.addr) proche.addr = p.addr;
         if (!proche.osm && p.osm){ proche.osm = p.osm; parId[p.osm] = proche; }
@@ -1100,6 +1114,7 @@
       } else {
         var h = { id: uid(), cityId: c.id, lat: p.lat, lng: p.lng, status: "avoir",
                   osm: p.osm || null, addr: p.addr || null, ops: p.ops,
+                  verif: p.verif,
                   ts: Date.now() };
         if (p.logements) h.logements = p.logements;
         data.houses.push(h);
