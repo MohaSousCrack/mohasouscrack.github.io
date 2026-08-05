@@ -883,6 +883,7 @@ td .neuf.vert { background: var(--good); color: #fff; }
 .alerte b { color: var(--ink); font-weight: 650; }
 .alerte.neuve { border-left-color: var(--good); }
 .alerte.cours { border-left-color: var(--series-1); }
+.alerte.tard { border-left-color: var(--serious); }
 .comp { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 8px;
         font-size: 12px; color: var(--ink-2); margin: 0 0 11px;
         padding: 7px 9px; border-radius: 7px; background: var(--plane);
@@ -1439,6 +1440,18 @@ const orangeDouteux = p => p.ftth >= 50 &&
   p.free / p.ftth >= .95 && p.bouygues / p.ftth >= .95 &&
   p.sfr / p.ftth >= .95 && p.orange / p.ftth < .90;
 
+/* Signature d'une déclaration en retard : un opérateur dessert le parc ancien
+   mais aucune des adresses ouvertes au dernier relevé. Vu à Saint-Thual, où
+   Orange et SFR couvrent les 66 adresses antérieures et zéro des 355 nouvelles,
+   alors que la carte d'Orange annonce la commune desservie. */
+function retardataires(p) {
+  const ancien = p.ftth - p.neuf;
+  if (p.neuf < 20 || ancien <= 0) return [];
+  return [["Orange", p.orange], ["Bouygues", p.bouygues], ["SFR", p.sfr], ["Free", p.free]]
+    .filter(([, n]) => n <= ancien * 1.02 && n < p.ftth * 0.95)
+    .map(([nom]) => nom);
+}
+
 /* Ancienneté du déploiement. Une commune fraîchement fibrée n'est pas un
    défaut à cacher : c'est l'argument d'entrée le plus fort — « la fibre vient
    d'arriver chez vous ». Et tant que le déploiement n'est pas fini, il reste
@@ -1460,13 +1473,23 @@ function alerteNeuf(p) {
       `date : un opérateur absent ci-dessus a pu ouvrir depuis. À vérifier à ` +
       `l'adresse exacte.</div>`;
   }
+  const tard = retardataires(p);
+  if (tard.length) {
+    out += `<div class="alerte tard"><b>${tard.join(" et ")} ` +
+      `${tard.length > 1 ? "ne desservent" : "ne dessert"} que le parc antérieur</b> — ` +
+      `les ${nf.format(p.ftth - p.neuf)} adresses déjà raccordables avant la ` +
+      `dernière publication, et aucune des ${nf.format(p.neuf)} nouvelles. ` +
+      `Ce décalage traduit presque toujours une déclaration en retard, ` +
+      `comblée au relevé suivant, plutôt qu'une absence de réseau.</div>`;
+  }
   if (enCours(p)) {
     out += `<div class="alerte cours"><b>Déploiement en cours</b> — ` +
       `${nf.format(p.tot - p.ftth)} adresses de la commune ne sont pas encore ` +
       `raccordables. L'opérateur d'infrastructure reste tenu d'achever la zone ` +
       `dans son délai de complétude.</div>`;
   }
-  if (orangeDouteux(p)) {
+  /* L'encadré ci-dessus est plus précis : inutile de répéter le cas Orange. */
+  if (orangeDouteux(p) && !tard.includes("Orange")) {
     out += `<div class="alerte"><b>Le chiffre Orange est probablement faux</b> — ` +
       `Free, Bouygues et SFR couvrent tout, Orange non : cette configuration ne ` +
       `dure jamais. Sur les neuf départements, 6 des 7 communes dans ce cas au ` +
