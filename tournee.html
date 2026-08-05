@@ -118,6 +118,10 @@
   .listRow .l1{font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .listRow .l2{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .listRow .op{flex:0 0 auto;font-size:10px;font-weight:800;border-radius:6px;padding:3px 6px;color:#fff}
+  .legendeFibre{display:flex;flex-direction:column;gap:9px;margin:10px 0 4px}
+  .legendeFibre .lf{display:flex;align-items:center;gap:11px;font-size:12.5px;color:var(--paper)}
+  .legendeFibre .lf i{flex:0 0 26px;border-radius:50%;box-sizing:content-box;
+    display:inline-block;margin-left:2px}
   .legend{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--muted);margin-top:6px}
   .legend span{display:flex;align-items:center;gap:5px}
   .legend i{width:10px;height:10px;border-radius:50%;display:inline-block}
@@ -250,11 +254,21 @@
     <div class="sheet">
       <h2>Comment ça marche</h2>
       <div class="note" style="margin-top:0;font-size:13px;line-height:1.55">
-        <b>1.</b> Menu ville (en haut) → ajoute ta commune → « 🏠 Charger toutes les maisons » : chaque bâtiment arrive en gris « À voir ».<br><br>
-        <b>2.</b> En tournée : touche une maison → choisis sa couleur (Signé, Refus, Absent, Rappel, À repasser), l'opérateur du foyer (l'anneau coloré) et une note. Reste appuyé sur la carte pour ajouter une maison manquante.<br><br>
-        <b>3.</b> « ⇢ Trajet » : ordre de passage optimisé des maisons à faire. « ◌ Lasso » : dessine une zone pour tout changer d'un coup ou calculer le trajet dessus.<br><br>
-        <b>4.</b> « ☰ » : ta liste de repasse (Rappels, À repasser, Absents) avec date et heure.<br><br>
-        <b>5.</b> Tout est enregistré <b>sur ton appareil</b>. « Exporter / Importer » pour sauvegarder ou fusionner avec les collègues.
+        <b>1.</b> Menu ville (en haut) → ajoute ta commune → « 🏠 Charger toutes les maisons » : tous les bâtiments de la commune arrivent en gris, avec leur adresse et l'état de la fibre.<br><br>
+        <b>2.</b> En tournée : touche une maison → sa couleur (Signé, Refus, Absent, Rappel, À repasser), l'opérateur du foyer et une note. Reste appuyé sur la carte pour ajouter une maison manquante.<br><br>
+        <b>3.</b> « ◌ Lasso » : dessine une zone pour tout changer d'un coup. « ☰ » : ta liste de repasse (Rappels, À repasser, Absents) avec date et heure.<br><br>
+        <b>4.</b> Tout est enregistré <b>sur ton appareil</b>. « Exporter / Importer » pour sauvegarder ou fusionner avec les collègues.
+      </div>
+
+      <h2>L'anneau des points</h2>
+      <div class="note" style="margin-top:0">
+        Il dit <b>qui ne peut pas raccorder</b> ce logement, alors que Free le peut.
+        Plus il est épais et le point gros, plus il manque de concurrents.
+      </div>
+      <div class="legendeFibre" id="legendeFibre"></div>
+      <div class="note">
+        Dès que tu renseignes l'opérateur du foyer, l'anneau prend sa couleur :
+        ce que tu as constaté sur place prime.
       </div>
       <button class="bigBtn accent" id="btnCloseHelp" style="margin-top:12px">C'est parti ! 🚀</button>
     </div>
@@ -436,11 +450,37 @@
   // h.ops est un masque : 1 Free, 2 Orange, 4 Bouygues, 8 SFR. Absent = on ne
   // sait pas (maison posee a la main ou chargee depuis OpenStreetMap).
   var FIBRE = [[1,"Free"],[2,"Orange"],[4,"Bouygues"],[8,"SFR"]];
+
+  // Anneau : il dit qui ne peut PAS raccorder ce logement alors que Free le
+  // peut. Quand un seul concurrent manque, on reprend sa couleur — c'est
+  // immédiat à lire. Quand il en manque plusieurs, une teinte dédiée qui fonce
+  // avec le nombre ; l'ambre a été écarté, il se confondait avec l'opérateur
+  // Orange et avec le statut « Absent ».
+  var MANQUE = {
+    2: { c: "#FF7900", nom: "Orange" },      // orange
+    4: { c: "#33A1FD", nom: "Bouygues" },    // bleu
+    8: { c: "#FF1744", nom: "SFR" }          // rouge
+  };
+  var PLUSIEURS = { 2: "#E879F9", 3: "#A21CAF" };   // magenta clair puis foncé
+
   function fibreEtat(h){
     if (h.ops == null) return null;
     if (!h.ops) return "sans";
     if ((h.ops & 1) && (h.ops & 14) !== 14) return "avantage";
     return (h.ops & 1) ? "complet" : "sansfree";
+  }
+  function nbManquants(h){
+    if (h.ops == null || !(h.ops & 1)) return 0;
+    return (!(h.ops & 2)) + (!(h.ops & 4)) + (!(h.ops & 8));
+  }
+  function couleurManque(h){
+    var n = nbManquants(h);
+    if (n === 0) return null;
+    if (n === 1){
+      var bit = !(h.ops & 2) ? 2 : !(h.ops & 4) ? 4 : 8;
+      return MANQUE[bit].c;
+    }
+    return PLUSIEURS[n];
   }
   function fibreListe(h, present){
     return FIBRE.filter(function(o){ return present ? (h.ops & o[0]) : !(h.ops & o[0]); })
@@ -453,14 +493,15 @@
   // parlant : gros = occasion, petit = pas de fibre.
   function ringOf(h){
     if (h.op && OPS[h.op]) return {color: OPS[h.op].color, weight: 3};
-    var e = fibreEtat(h);
-    if (e === "avantage") return {color: "#F2A31B", weight: 3};
-    if (e === "sans")     return {color: "#5A6472", weight: 1.5};
+    var c = couleurManque(h);
+    if (c) return {color: c, weight: 2.5 + nbManquants(h) * 0.7};
+    if (fibreEtat(h) === "sans") return {color: "#5A6472", weight: 1.5};
     return {color: "#FFFFFF", weight: 1.5};
   }
   function rayonOf(h){
-    var e = fibreEtat(h);
-    return e === "avantage" ? 10 : e === "sans" ? 6 : 9;
+    var n = nbManquants(h);
+    if (n) return 8 + n;                       // 9, 10 puis 11
+    return fibreEtat(h) === "sans" ? 6 : 8;
   }
   function renderAll(){
     layer.clearLayers(); markersById = {};
@@ -508,8 +549,12 @@
         fb.className += " off";
         fb.textContent = "✕ Pas de fibre à cette adresse";
       } else if (etat === "avantage"){
-        fb.textContent = "⚡ Fibre : " + fibreListe(h, true).join(", ") +
-                         " — pas " + fibreListe(h, false).join(", ");
+        var manque = fibreListe(h, false);
+        fb.style.borderColor = couleurManque(h);
+        fb.textContent = manque.length > 1
+          ? "⚡ " + manque.length + " concurrents ne peuvent pas raccorder : " +
+            manque.join(", ") + " — Free oui"
+          : "⚡ " + manque[0] + " ne peut pas raccorder ici — Free oui";
       } else {
         fb.className += " ok";
         fb.textContent = "✓ Fibre : " + fibreListe(h, true).join(", ");
@@ -593,6 +638,28 @@
       c.appendChild(b);
     });
   }
+  // Construite a partir de ringOf/rayonOf : la legende ne peut pas mentir sur
+  // ce que la carte affiche.
+  function renderLegendeFibre(){
+    var box = document.getElementById("legendeFibre");
+    if (!box) return;
+    var cas = [
+      { ops: 1|4|8, txt: "Orange ne peut pas raccorder" },
+      { ops: 1|2|8, txt: "Bouygues ne peut pas" },
+      { ops: 1|2|4, txt: "SFR ne peut pas" },
+      { ops: 1|2,   txt: "deux concurrents ne peuvent pas" },
+      { ops: 1,     txt: "Free est le seul des quatre" },
+      { ops: 15,    txt: "les quatre peuvent raccorder" },
+      { ops: 0,     txt: "aucune fibre à cette adresse" }
+    ];
+    box.innerHTML = cas.map(function(k){
+      var h = { ops: k.ops }, r = ringOf(h), d = rayonOf(h) * 2;
+      return '<span class="lf"><i style="width:' + d + 'px;height:' + d + 'px;' +
+        'border:' + r.weight + 'px solid ' + r.color + ';background:#6E7A8A"></i>' +
+        k.txt + '</span>';
+    }).join("");
+  }
+
   function renderStamps(){
     var s = document.getElementById("stamps"); s.innerHTML = "";
     ORDER.forEach(function(k){
@@ -1476,7 +1543,7 @@
   }
 
   // ---------- Démarrage ----------
-  renderStamps(); styleStampHere(); setHint();
+  renderStamps(); styleStampHere(); setHint(); renderLegendeFibre();
   load().then(async function(){
     var arrivee = villeDepuisUrl();
     var c = activeCity();
