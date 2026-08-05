@@ -44,9 +44,6 @@
 
   #map{flex:1 1 auto;min-height:0}
   .leaflet-container{background:#DDE3E9;font:inherit}
-  .seq{background:var(--ink);color:#fff;border:1.5px solid #fff;border-radius:999px;
-    width:20px;height:20px;display:flex;align-items:center;justify-content:center;
-    font-size:11px;font-weight:800;font-variant-numeric:tabular-nums}
 
   footer{flex:0 0 auto;background:var(--ink);border-top:1px solid var(--line);
     padding:10px 12px calc(10px + env(safe-area-inset-bottom))}
@@ -114,9 +111,6 @@
   .bigBtn.danger{border-color:#7a2f2f;background:#3a2023}
   #exportTa{width:100%;height:140px;background:var(--ink-2);color:var(--paper);
     border:1px solid var(--line);border-radius:10px;padding:10px;font-size:11px}
-  #seedProg{display:none;height:7px;background:var(--ink-2);border:1px solid var(--line);
-    border-radius:99px;margin-top:8px;overflow:hidden}
-  #seedProgBar{height:100%;width:0%;background:var(--signe);transition:width .4s}
 
   .listRow{display:flex;align-items:center;gap:9px;padding:10px 2px;border-bottom:1px solid var(--line);cursor:pointer}
   .listRow .dot{flex:0 0 auto;width:12px;height:12px;border-radius:50%;border:2.5px solid transparent}
@@ -179,14 +173,8 @@
         qui y commercialisent la fibre. Les <b>⚡ ambrées</b> sont celles où Free passe
         et où un concurrent au moins ne passe pas.
       </div>
-      <button class="bigBtn" id="btnSeed" style="margin-top:10px">🗺️ Charger depuis OpenStreetMap (secours)</button>
-      <div id="seedProg"><div id="seedProgBar"></div></div>
-      <div class="note">
-        À utiliser si la commune n'est pas dans les données Arcep. Découpage moins net,
-        et sans information de fibre.
-      </div>
-      <button class="bigBtn" id="btnClearAvoir" style="margin-top:8px">🧹 Retirer les « À voir » de la ville</button>
-      <div class="note">Utile pour nettoyer un mauvais chargement : seuls les points gris « À voir » sont supprimés, tes points coloriés restent.</div>
+      <button class="bigBtn" id="btnClearAvoir" style="margin-top:10px">🧹 Retirer les maisons non visitées</button>
+      <div class="note">Nettoie un mauvais chargement : seules les maisons encore grises partent, tes points coloriés restent.</div>
 
       <h2>Sauvegarde (100 % locale)</h2>
       <div class="row2">
@@ -228,22 +216,6 @@
     </div>
   </div>
 
-  <!-- Plan B overpass-turbo -->
-  <div class="panel" id="planBPanel">
-    <div class="sheet">
-      <h2>Plan B — récupérer les maisons</h2>
-      <div class="note" style="margin-top:0">
-        Le chargement direct est bloqué par ton navigateur. En 3 gestes :<br>
-        ① ouvre overpass-turbo avec la requête déjà prête, touche « Exécuter » ;<br>
-        ② en haut de la page : Exporter → GeoJSON (un fichier se télécharge) ;<br>
-        ③ reviens ici et importe ce fichier.
-      </div>
-      <button class="bigBtn accent" id="btnTurbo" style="margin-top:10px">① Ouvrir overpass-turbo (requête prête)</button>
-      <button class="bigBtn" id="btnPlanBImport" style="margin-top:8px">③ Importer le GeoJSON téléchargé</button>
-      <button class="closeSheet" id="btnClosePlanB">Fermer</button>
-    </div>
-  </div>
-
   <!-- Liste de repasse -->
   <div class="panel" id="listPanel">
     <div class="sheet">
@@ -267,7 +239,6 @@
       <h2><span id="lassoCount">0</span> maisons dans la zone</h2>
       <div class="note" style="margin-top:0">Passer toutes ces maisons en :</div>
       <div class="stamps" id="lassoStamps" style="margin-top:8px"></div>
-      <button class="bigBtn accent" id="btnLassoRoute">⇢ Calculer le trajet sur cette zone</button>
       <button class="bigBtn danger" id="btnLassoDelete" style="margin-top:8px">🗑 Supprimer ces points</button>
       <button class="bigBtn danger" id="btnLassoKeep" style="margin-top:8px">✂ Garder seulement cette zone (supprime le reste de la ville)</button>
       <button class="closeSheet" id="btnCloseLasso">Fermer</button>
@@ -328,7 +299,6 @@
     <div class="actions">
       <button class="btn" id="btnLocate">◎ Pos.</button>
       <button class="btn primary" id="btnStampHere">📍 Ici</button>
-      <button class="btn" id="btnRoute">⇢ Trajet</button>
       <button class="btn" id="btnLasso">◌ Lasso</button>
     </div>
     <div class="hint" id="hint"></div>
@@ -346,7 +316,10 @@
     repasser: {label:"À repasser", color:"#9B59B6"},
     avoir:    {label:"À voir",     color:"#6E7A8A"}
   };
-  var ORDER = ["signe","refus","absent","rappel","repasser","avoir"];
+  // « avoir » n'est plus un tampon : c'est l'état gris des maisons pas encore
+  // visitées, celui de toutes les maisons au chargement.
+  var NEUF = "avoir";
+  var ORDER = ["signe","refus","absent","rappel","repasser"];
   var OPS = {
     free:     {label:"Free",     color:"#E1000F"},
     orange:   {label:"Orange",   color:"#FF7900"},
@@ -358,11 +331,10 @@
   var KEY = "tournee-v3", KEY_V2 = "tournee-v2", KEY_V1 = "tournee-lhermitage";
 
   var data = { cities: [], houses: [], activeCityId: null };
-  var selected = "avoir";
+  var selected = "signe";
   var filter = null;
   var fibreFilter = false;      // n'afficher que les « Free devance »
   var lastUndo = null;
-  var routeOn = false, routeSelection = null;
   var mePos = null, placingMe = false;
   var markersById = {};
   var lassoMode = false, lassoSel = [];
@@ -391,7 +363,6 @@
   var map = L.map("map", {zoomControl:false, preferCanvas:true, renderer: canvasRenderer}).setView([46.6, 2.4], 6);
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:19, attribution:"© OpenStreetMap"}).addTo(map);
   L.control.zoom({position:"topright"}).addTo(map);
-  var routeLayer = L.layerGroup().addTo(map);
   var lassoLayer = L.layerGroup().addTo(map);
   var layer = L.layerGroup().addTo(map);
   var meMarker = null;
@@ -499,7 +470,6 @@
       addMarker(h);
     });
     renderChips(); renderCityBtn();
-    if (routeOn) drawRoute(); else routeLayer.clearLayers();
   }
   function addMarker(h){
     var st = STATUSES[h.status] || STATUSES.avoir;
@@ -555,11 +525,14 @@
       if (h.status === k) b.style.outline = "2px solid #14161B";
       b.addEventListener("click", function(){
         lastUndo = {type:"paint", id:h.id, prev:h.status};
-        h.status = k;
-        h.statusTs = Date.now();
+        // Retoucher le statut déjà posé remet la maison en « pas encore visitée ».
+        var retour = h.status === k;
+        h.status = retour ? NEUF : k;
+        h.statusTs = retour ? null : Date.now();
         refreshMarker(h);
         renderChips(); save(); map.closePopup();
-        toast("→ " + STATUSES[k].label, "Annuler", undoLast);
+        toast(retour ? "→ pas encore visitée" : "→ " + STATUSES[k].label,
+              "Annuler", undoLast);
       });
       (i < 3 ? row1 : row2).appendChild(b);
     });
@@ -673,164 +646,80 @@
     addHouse(e.latlng.lat, e.latlng.lng, "avoir");
   });
 
-  // ---------- GPS + position manuelle ----------
-  function setMe(lat, lng, zoomTo){
+  // ---------- GPS ----------
+  // Le bouton est un interrupteur de suivi : une pression allume le GPS et la
+  // position se met à jour toute seule tant qu'il est allumé. L'ancienne version
+  // faisait une mesure unique, sans le dire, et une seconde pression pendant
+  // qu'elle attendait ne relançait rien.
+  var suivi = null, meCercle = null;
+
+  function setMe(lat, lng, precision, recentrer){
     mePos = { lat: lat, lng: lng };
-    if (meMarker) map.removeLayer(meMarker);
-    meMarker = L.circleMarker([lat, lng], {radius:7, color:"#fff", weight:2,
-      fillColor:"#2A7FFF", fillOpacity:1, className:"pulse"}).addTo(map);
-    if (zoomTo) map.setView([lat, lng], Math.max(map.getZoom(), 17));
+    if (!meMarker){
+      meMarker = L.circleMarker([lat, lng], {radius:7, color:"#fff", weight:2,
+        fillColor:"#2A7FFF", fillOpacity:1, className:"pulse"}).addTo(map);
+    } else {
+      meMarker.setLatLng([lat, lng]);
+    }
+    if (precision > 0){
+      if (!meCercle){
+        meCercle = L.circle([lat, lng], {radius:precision, color:"#2A7FFF",
+          weight:1, opacity:.5, fillColor:"#2A7FFF", fillOpacity:.10,
+          interactive:false}).addTo(map);
+      } else {
+        meCercle.setLatLng([lat, lng]); meCercle.setRadius(precision);
+      }
+    }
+    if (recentrer) map.setView([lat, lng], Math.max(map.getZoom(), 17));
   }
   function startManualMe(){
     placingMe = true;
     setHint("📍 Touche la carte à l'endroit où tu es — ta position bleue s'y placera.");
   }
-  function locate(cb){
+  function arreterSuivi(){
+    if (suivi !== null) navigator.geolocation.clearWatch(suivi);
+    suivi = null;
+    document.getElementById("btnLocate").classList.remove("on");
+    setHint();
+  }
+  function messageGps(err){
     var isFile = (location.protocol === "file:");
+    if (isFile) return "Le GPS est bloqué sur un fichier ouvert en local. Ouvre le site en ligne.";
+    if (err && err.code === 1) return "Tu as refusé l'accès à ta position — autorise-le dans le navigateur.";
+    if (err && err.code === 3) return "Le GPS met trop de temps à répondre. Réessaie dehors.";
+    return "Position indisponible pour l'instant.";
+  }
+  function demarrerSuivi(cb){
     if (!navigator.geolocation){
-      toast(isFile ? "GPS bloqué sur un fichier local — place ta position à la main." : "GPS indisponible sur cet appareil.", "Placer", startManualMe);
+      toast("Ce navigateur n'a pas de GPS.", "Placer à la main", startManualMe);
       return;
     }
-    navigator.geolocation.getCurrentPosition(function(pos){
-      setMe(pos.coords.latitude, pos.coords.longitude, true);
-      if (cb) cb(mePos.lat, mePos.lng);
-    }, function(){
-      toast(isFile
-        ? "Chrome/Brave bloquent le GPS sur les fichiers locaux (file://). Héberge la page en https, ou place ta position à la main."
-        : "GPS refusé ou indisponible — place ta position à la main.",
-        "Placer", startManualMe);
-    }, {enableHighAccuracy:true, timeout:8000});
-  }
-  document.getElementById("btnLocate").addEventListener("click", function(){ locate(); });
-  document.getElementById("btnStampHere").addEventListener("click", function(){
-    locate(function(lat, lng){ addHouse(lat, lng); });
-  });
-
-  // ---------- Trajet ----------
-  function routePoints(){
-    var hs = cityHouses();
-    if (routeSelection){
-      var set = {};
-      routeSelection.forEach(function(id){ set[id] = 1; });
-      hs = hs.filter(function(h){ return set[h.id]; });
-    } else {
-      var b = map.getBounds();
-      hs = hs.filter(function(h){ return b.contains([h.lat, h.lng]); });
-    }
-    var pts = hs.filter(function(h){ return h.status === "avoir"; });
-    if (!pts.length) pts = hs.filter(function(h){ return h.status === "absent" || h.status === "repasser"; });
-    return pts;
-  }
-  function computeOrder(pts){
-    var n = pts.length;
-    if (n < 2) return pts.slice();
-    var startIdx = 0;
-    if (mePos){
-      var best = Infinity;
-      pts.forEach(function(p, i){ var d = haversine(mePos, p); if (d < best){ best = d; startIdx = i; } });
-    }
-    var visited = new Array(n).fill(false), order = [startIdx];
-    visited[startIdx] = true;
-    for (var s = 1; s < n; s++){
-      var last = pts[order[order.length-1]], bi = -1, bd = Infinity;
-      for (var i = 0; i < n; i++){
-        if (visited[i]) continue;
-        var d = haversine(last, pts[i]);
-        if (d < bd){ bd = d; bi = i; }
+    var premier = true;
+    document.getElementById("btnLocate").classList.add("on");
+    setHint("◎ Recherche de ta position…");
+    toast("Recherche de ta position…");
+    suivi = navigator.geolocation.watchPosition(function(pos){
+      setMe(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy, premier);
+      if (premier){
+        premier = false;
+        toast("Position trouvée à " + Math.round(pos.coords.accuracy) + " m près. " +
+              "Elle se met à jour toute seule.");
+        if (cb) cb(mePos.lat, mePos.lng);
       }
-      visited[bi] = true; order.push(bi);
-    }
-    if (n <= 600){
-      var D = function(i, j){ return haversine(pts[i], pts[j]); };
-      var twoOpt = function(){
-        var improved = true, passes = 0;
-        while (improved && passes < 10){
-          improved = false; passes++;
-          for (var a = 0; a < n-2; a++){
-            for (var b2 = a+2; b2 < n-1; b2++){
-              if (D(order[a], order[a+1]) + D(order[b2], order[b2+1]) >
-                  D(order[a], order[b2]) + D(order[a+1], order[b2+1]) + 0.01){
-                var seg = order.slice(a+1, b2+1).reverse();
-                for (var k = 0; k < seg.length; k++) order[a+1+k] = seg[k];
-                improved = true;
-              }
-            }
-          }
-        }
-      };
-      var orOpt = function(){
-        var improved = true, passes = 0;
-        while (improved && passes < 5){
-          improved = false; passes++;
-          for (var L2 = 1; L2 <= 3; L2++){
-            for (var i2 = 1; i2 + L2 < n; i2++){
-              var p0 = order[i2-1], p1 = order[i2], p2 = order[i2+L2-1], p3 = order[i2+L2];
-              var removeGain = D(p0,p1) + D(p2,p3) - D(p0,p3);
-              if (removeGain <= 0.01) continue;
-              var bestJ = -1, bestDelta = 0.01;
-              for (var j2 = 0; j2 < n-1; j2++){
-                if (j2 >= i2-1 && j2 <= i2+L2-1) continue;
-                var q0 = order[j2], q1 = order[j2+1];
-                var insCost = D(q0,p1) + D(p2,q1) - D(q0,q1);
-                var delta = removeGain - insCost;
-                if (delta > bestDelta){ bestDelta = delta; bestJ = j2; }
-              }
-              if (bestJ >= 0){
-                var block = order.splice(i2, L2);
-                var insertAt = bestJ < i2 ? bestJ + 1 : bestJ + 1 - L2;
-                for (var k2 = 0; k2 < L2; k2++) order.splice(insertAt + k2, 0, block[k2]);
-                improved = true;
-              }
-            }
-          }
-        }
-      };
-      twoOpt(); orOpt(); twoOpt();
-    }
-    return order.map(function(i){ return pts[i]; });
+      setHint("◎ Suivi actif — précision " + Math.round(pos.coords.accuracy) +
+              " m. Touche « Pos. » pour l'arrêter.");
+    }, function(err){
+      arreterSuivi();
+      toast(messageGps(err), "Placer à la main", startManualMe);
+    }, {enableHighAccuracy:true, timeout:15000, maximumAge:2000});
   }
-  function drawRoute(){
-    routeLayer.clearLayers();
-    var pts = routePoints();
-    if (pts.length < 2){
-      routeOn = false; routeSelection = null;
-      document.getElementById("btnRoute").classList.remove("on");
-      setHint();
-      toast("Aucun point « À voir » dans la zone — zoome ou change de secteur.");
-      return;
-    }
-    if (pts.length > 800){
-      routeOn = false; routeSelection = null;
-      document.getElementById("btnRoute").classList.remove("on");
-      setHint();
-      toast("Trop de points (" + pts.length + ") — réduis la zone.");
-      return;
-    }
-    var ordered = computeOrder(pts);
-    var latlngs = ordered.map(function(p){ return [p.lat, p.lng]; });
-    if (mePos && map.getBounds().contains([mePos.lat, mePos.lng])) latlngs.unshift([mePos.lat, mePos.lng]);
-    L.polyline(latlngs, {color:"#2A7FFF", weight:3, opacity:.85, dashArray:"6 6"}).addTo(routeLayer);
-    var total = 0;
-    for (var i = 1; i < latlngs.length; i++){
-      total += haversine({lat:latlngs[i-1][0], lng:latlngs[i-1][1]}, {lat:latlngs[i][0], lng:latlngs[i][1]});
-    }
-    var step = Math.max(1, Math.round(ordered.length / 60));
-    ordered.forEach(function(p, i){
-      if (i % step !== 0 && i !== ordered.length - 1) return;
-      L.marker([p.lat, p.lng], {
-        icon: L.divIcon({className:"", html:"<div class='seq'>" + (i+1) + "</div>", iconSize:[20,20], iconAnchor:[10, 24]}),
-        interactive:false
-      }).addTo(routeLayer);
-    });
-    var km = (total/1000).toFixed(1).replace(".", ",");
-    setHint("Trajet : " + ordered.length + " arrêts · ~" + km + " km" + (routeSelection ? " (zone lasso)" : " (points visibles)") + ".");
-  }
-  document.getElementById("btnRoute").addEventListener("click", function(){
-    routeOn = !routeOn;
-    if (!routeOn) routeSelection = null;
-    this.classList.toggle("on", routeOn);
-    if (!routeOn){ routeLayer.clearLayers(); setHint(); }
-    else drawRoute();
+  document.getElementById("btnLocate").addEventListener("click", function(){
+    if (suivi !== null){ arreterSuivi(); toast("Suivi GPS arrêté."); }
+    else demarrerSuivi();
+  });
+  document.getElementById("btnStampHere").addEventListener("click", function(){
+    if (mePos){ addHouse(mePos.lat, mePos.lng); return; }
+    demarrerSuivi(function(lat, lng){ addHouse(lat, lng); });
   });
 
   // ---------- Lasso ----------
@@ -944,14 +833,6 @@
       toast((before - data.houses.length) + " points hors zone supprimés.");
     });
   });
-  document.getElementById("btnLassoRoute").addEventListener("click", function(){
-    routeSelection = lassoSel.slice();
-    routeOn = true;
-    document.getElementById("btnRoute").classList.add("on");
-    document.getElementById("lassoPanel").style.display = "none";
-    lassoLayer.clearLayers();
-    drawRoute();
-  });
 
   // ---------- Liste de repasse ----------
   var listShow = { rappel:true, repasser:true, absent:true, signe:false, notes:false };
@@ -1024,76 +905,12 @@
     }
   }
 
-  // ---------- Chargement des maisons (Overpass) ----------
-  var OVERPASS = [
-    "https://overpass.kumi.systems/api/interpreter",
-    "https://overpass.private.coffee/api/interpreter",
-    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
-    "https://overpass-api.de/api/interpreter"
-  ];
   function fetchTimeout(url, opts, ms){
     var ctrl = ("AbortController" in window) ? new AbortController() : null;
     if (ctrl) opts.signal = ctrl.signal;
     var timer = ctrl ? setTimeout(function(){ ctrl.abort(); }, ms) : null;
     return fetch(url, opts).finally(function(){ if (timer) clearTimeout(timer); });
   }
-  async function seedHouses(){
-    var c = activeCity();
-    if (!c){ toast("Crée d'abord une ville."); return; }
-    var btn = document.getElementById("btnSeed");
-    var prog = document.getElementById("seedProg");
-    var bar = document.getElementById("seedProgBar");
-    btn.disabled = true; prog.style.display = "block"; bar.style.width = "2%";
-    var q = '[out:json][timeout:25];' +
-      'is_in(' + c.lat + ',' + c.lng + ')->.a;' +
-      'area.a["boundary"="administrative"][admin_level="8"]->.commune;' +
-      'way["building"~"^(house|residential|detached|semidetached_house|terrace|apartments|bungalow|farm|yes)$"](area.commune);' +
-      'out center;';
-    var elements = null, gotHttpAnswer = false;
-    var N = OVERPASS.length, t0 = Date.now(), curServer = 0, stageStart = Date.now();
-    var tick = setInterval(function(){
-      var secTot = Math.round((Date.now() - t0)/1000);
-      btn.textContent = "⏳ Serveur " + (curServer+1) + "/" + N + " — " + secTot + " s";
-      var frac = (curServer + Math.min((Date.now() - stageStart)/20000, 1)) / N;
-      bar.style.width = Math.max(2, Math.round(frac*100)) + "%";
-    }, 400);
-    for (var e = 0; e < N && !elements; e++){
-      curServer = e; stageStart = Date.now();
-      var attempts = [
-        {url: OVERPASS[e], opts: {method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded"}, body:"data=" + encodeURIComponent(q)}},
-        {url: OVERPASS[e] + "?data=" + encodeURIComponent(q), opts: {method:"GET"}}
-      ];
-      for (var t = 0; t < attempts.length && !elements; t++){
-        try{
-          var resp = await fetchTimeout(attempts[t].url, attempts[t].opts, 20000);
-          gotHttpAnswer = true;
-          if (!resp.ok) break;
-          var json = await resp.json();
-          elements = json.elements || [];
-        }catch(err){ /* réseau coupé : GET puis serveur suivant */ }
-      }
-    }
-    clearInterval(tick);
-    btn.disabled = false; btn.textContent = "🏠 Charger toutes les maisons (OpenStreetMap)";
-    prog.style.display = "none"; bar.style.width = "0%";
-    if (!elements){
-      if (!gotHttpAnswer) openPlanB();
-      else toast("Les 4 serveurs OpenStreetMap refusent ou saturent (souvent temporaire). Le Plan B marche à tous les coups.", "Plan B", openPlanB);
-      return;
-    }
-    var pts = elements.map(function(el){
-      var tags = el.tags || {};
-      var addr = null;
-      if (tags["addr:housenumber"] && tags["addr:street"]) addr = tags["addr:housenumber"] + " " + tags["addr:street"];
-      else if (tags["addr:street"]) addr = tags["addr:street"];
-      return { lat: el.center ? el.center.lat : el.lat,
-               lng: el.center ? el.center.lon : el.lon,
-               osm: el.type + "/" + el.id,
-               addr: addr };
-    }).filter(function(p){ return p.lat != null && p.lng != null; });
-    finishSeed(c, pts);
-  }
-  document.getElementById("btnSeed").addEventListener("click", seedHouses);
 
   var clearArm = false;
   document.getElementById("btnClearAvoir").addEventListener("click", function(){
@@ -1101,15 +918,15 @@
     var btn = this;
     if (!clearArm){
       clearArm = true;
-      btn.textContent = "🧹 Sûr ? Ça supprime tous les « À voir » de " + c.name;
-      setTimeout(function(){ clearArm = false; btn.textContent = "🧹 Retirer les « À voir » de la ville"; }, 3500);
+      btn.textContent = "🧹 Sûr ? Ça supprime les maisons non visitées de " + c.name;
+      setTimeout(function(){ clearArm = false; btn.textContent = "🧹 Retirer les maisons non visitées"; }, 3500);
       return;
     }
     var before = data.houses.length;
-    data.houses = data.houses.filter(function(h){ return !(h.cityId === c.id && h.status === "avoir"); });
-    clearArm = false; btn.textContent = "🧹 Retirer les « À voir » de la ville";
+    data.houses = data.houses.filter(function(h){ return !(h.cityId === c.id && h.status === NEUF); });
+    clearArm = false; btn.textContent = "🧹 Retirer les maisons non visitées";
     save(); renderAll();
-    toast((before - data.houses.length) + " points « À voir » retirés.");
+    toast((before - data.houses.length) + " maisons non visitées retirées.");
   });
 
   function finishSeed(c, pts){
@@ -1232,10 +1049,17 @@
   }
 
   document.getElementById("btnArcep").addEventListener("click", async function(){
+    chargerArcep(false);
+  });
+
+  // auto = true quand on arrive depuis la carte fibre : on ne parle qu'en cas
+  // de succes ou de vrai probleme, sans bloquer le bouton.
+  async function chargerArcep(auto){
     var c = activeCity();
-    if (!c){ closeSheet(); toast("Crée d'abord une ville."); return; }
-    var btn = this, libelle = btn.textContent;
+    if (!c){ if (!auto){ closeSheet(); toast("Crée d'abord une ville."); } return; }
+    var btn = document.getElementById("btnArcep"), libelle = btn.textContent;
     btn.disabled = true; btn.textContent = "⏳ Chargement…";
+    if (auto) toast("Chargement des maisons de " + c.name + "…");
 
     var insee = await inseeDeLaVille(c);
     var fic = null, coupe = false;
@@ -1263,35 +1087,11 @@
     }
     if (!fic){
       closeSheet();
-      toast(c.name + " n'est pas dans les données Arcep — utilise le chargement OpenStreetMap.");
+      toast(c.name + " n'est pas dans les données Arcep.");
       return;
     }
     poserPoints(c, arcepVersPoints(fic));
-  });
-
-  // ---------- Plan B : overpass-turbo ----------
-  function turboQuery(){
-    var c = activeCity();
-    return '[out:json][timeout:60];\n' +
-      'is_in(' + c.lat + ',' + c.lng + ')->.a;\n' +
-      'area.a["boundary"="administrative"][admin_level="8"]->.commune;\n' +
-      'way["building"](area.commune);\n' +
-      'out center;';
   }
-  function openPlanB(){
-    closeSheet();
-    document.getElementById("planBPanel").style.display = "flex";
-  }
-  document.getElementById("btnTurbo").addEventListener("click", function(){
-    if (!activeCity()){ toast("Crée d'abord une ville."); return; }
-    window.open("https://overpass-turbo.eu/?R&Q=" + encodeURIComponent(turboQuery()), "_blank");
-  });
-  document.getElementById("btnPlanBImport").addEventListener("click", function(){
-    document.getElementById("fileInput").click();
-  });
-  document.getElementById("btnClosePlanB").addEventListener("click", function(){
-    document.getElementById("planBPanel").style.display = "none";
-  });
 
   // ---------- GeoJSON → maisons ----------
   function centroidOfRing(ring){
@@ -1474,7 +1274,6 @@
           if (!c){ toast("Crée d'abord une ville, puis réimporte le GeoJSON."); return; }
           var pts = geoJsonToPoints(parsed);
           if (!pts.length){ toast("Aucun point trouvé dans ce GeoJSON."); return; }
-          document.getElementById("planBPanel").style.display = "none";
           finishSeed(c, pts);
           return;
         }
@@ -1538,8 +1337,7 @@
         }
       });
       row.addEventListener("click", function(){
-        data.activeCityId = c.id; filter = null; routeOn = false; routeSelection = null;
-        document.getElementById("btnRoute").classList.remove("on");
+        data.activeCityId = c.id; filter = null;
         setHint(); save(); renderAll(); closeSheet();
         map.setView([c.lat, c.lng], c.zoom || 15);
       });
@@ -1551,8 +1349,7 @@
     var c = { id: uid(), name: name, lat: lat, lng: lng, zoom: zoom || 15,
               insee: insee || null };
     data.cities.push(c); data.activeCityId = c.id;
-    filter = null; routeOn = false; routeSelection = null;
-    document.getElementById("btnRoute").classList.remove("on");
+    filter = null;
     setHint(); save(); renderAll(); renderCityList();
     map.setView([lat, lng], c.zoom);
     toast(name + " ajoutée — charge ses maisons depuis le menu ville.");
@@ -1668,11 +1465,13 @@
       filter = null; save(); renderAll();
       map.setView([existe.lat, existe.lng], existe.zoom || 15);
       toast(existe.name + " — déjà dans tes villes, elle est activée.");
+      chargerArcep(true);
       return true;
     }
     var lat = parseFloat(p.lat), lng = parseFloat(p.lng);
     if (isNaN(lat) || isNaN(lng)) return false;
     addCity(p.ville, lat, lng, 14, p.insee);
+    chargerArcep(true);      // on arrive pour prospecter : les maisons suivent
     return true;
   }
 
