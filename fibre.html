@@ -1436,9 +1436,13 @@ const frais = p => p.ftth > 0 && p.neuf / p.ftth >= NEUF;
    fibrées des neuf départements, il ne concernait que 7 communes au relevé
    précédent, et 6 sont passées à 100 % le trimestre suivant sans qu'une seule
    adresse ne s'ajoute. C'est un retard de déclaration, pas une absence. */
+/* Orange déclare ses ouvertures à l'Arcep avec du retard, quelle que soit la
+   situation des deux autres concurrents. Mesuré sur les neuf départements entre
+   les deux dernières publications : sur 18 communes où Free couvrait tout et
+   Orange moins de 90 %, 16 sont repassées au-dessus de 90 % au relevé suivant,
+   sur les mêmes adresses — dont une de 13 % à 100 % et une de 2 % à 99 %. */
 const orangeDouteux = p => p.ftth >= 50 &&
-  p.free / p.ftth >= .95 && p.bouygues / p.ftth >= .95 &&
-  p.sfr / p.ftth >= .95 && p.orange / p.ftth < .90;
+  p.free / p.ftth >= .95 && p.orange / p.ftth < .90;
 
 /* Signature d'une déclaration en retard : un opérateur dessert le parc ancien
    mais aucune des adresses ouvertes au dernier relevé. Vu à Saint-Thual, où
@@ -1447,8 +1451,11 @@ const orangeDouteux = p => p.ftth >= 50 &&
 function retardataires(p) {
   const ancien = p.ftth - p.neuf;
   if (p.neuf < 20 || ancien <= 0) return [];
+  /* On raisonne sur les adresses NEUVES couvertes, pas sur un total : un
+     opérateur peut dépasser un peu le parc ancien sans avoir suivi l'ouverture
+     (Saint-Guyomard, 104 adresses couvertes pour 94 anciennes et 609 neuves). */
   return [["Orange", p.orange], ["Bouygues", p.bouygues], ["SFR", p.sfr], ["Free", p.free]]
-    .filter(([, n]) => n <= ancien * 1.02 && n < p.ftth * 0.95)
+    .filter(([, n]) => Math.max(0, n - ancien) < p.neuf * 0.25)
     .map(([nom]) => nom);
 }
 
@@ -1475,7 +1482,10 @@ function alerteNeuf(p) {
   }
   const tard = retardataires(p);
   if (tard.length) {
-    out += `<div class="alerte tard"><b>${tard.join(" et ")} ` +
+    const liste = tard.length > 1
+      ? tard.slice(0, -1).join(", ") + " et " + tard[tard.length - 1]
+      : tard[0];
+    out += `<div class="alerte tard"><b>${liste} ` +
       `${tard.length > 1 ? "ne desservent" : "ne dessert"} que le parc antérieur</b> — ` +
       `les ${nf.format(p.ftth - p.neuf)} adresses déjà raccordables avant la ` +
       `dernière publication, et aucune des ${nf.format(p.neuf)} nouvelles. ` +
@@ -1490,11 +1500,12 @@ function alerteNeuf(p) {
   }
   /* L'encadré ci-dessus est plus précis : inutile de répéter le cas Orange. */
   if (orangeDouteux(p) && !tard.includes("Orange")) {
-    out += `<div class="alerte"><b>Le chiffre Orange est probablement faux</b> — ` +
-      `Free, Bouygues et SFR couvrent tout, Orange non : cette configuration ne ` +
-      `dure jamais. Sur les neuf départements, 6 des 7 communes dans ce cas au ` +
-      `relevé précédent sont passées à 100 % d'Orange le trimestre suivant, sans ` +
-      `qu'une adresse ne s'ajoute. Considérez qu'Orange passe ici.</div>`;
+    out += `<div class="alerte"><b>Le chiffre Orange est très probablement ` +
+      `sous-évalué</b> — Orange déclare ses ouvertures à l'Arcep avec du retard. ` +
+      `Sur les neuf départements, 16 des 18 communes où Free couvrait tout et ` +
+      `Orange moins de 90 % sont repassées au-dessus de 90 % au relevé suivant, ` +
+      `sur les mêmes adresses. Il y a donc de fortes chances qu'Orange desserve ` +
+      `bien cette commune.</div>`;
   }
   return out;
 }
