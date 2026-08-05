@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MohaBanger2ouf — les outils de la prospection fibre</title>
+<style>
+  :root{
+    --ink:#14161B; --ink-2:#20242C; --line:#343A45;
+    --paper:#FFFFFF; --muted:#9AA3B0;
+    --signe:#1FA45B; --free:#E1000F; --route:#2A7FFF;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;min-height:100%}
+  body{
+    background:var(--ink);color:var(--paper);
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    display:flex;flex-direction:column;min-height:100vh;
+    padding:0 16px calc(24px + env(safe-area-inset-bottom));
+  }
+  .wrap{width:100%;max-width:760px;margin:0 auto;flex:1;display:flex;flex-direction:column}
+
+  header{padding:40px 0 26px}
+  h1{margin:0;font-size:13px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+  .baseline{margin:14px 0 0;font-size:26px;font-weight:800;line-height:1.25;letter-spacing:-.01em}
+  .baseline b{color:var(--signe)}
+  .intro{margin:12px 0 0;font-size:14.5px;line-height:1.6;color:var(--muted);max-width:56ch}
+
+  .cards{display:grid;gap:14px;grid-template-columns:1fr 1fr}
+  @media (max-width:640px){ .cards{grid-template-columns:1fr} header{padding:28px 0 20px} .baseline{font-size:22px} }
+
+  .card{
+    display:flex;flex-direction:column;gap:9px;
+    background:var(--ink-2);border:1px solid var(--line);border-radius:16px;
+    padding:20px;color:inherit;text-decoration:none;
+    transition:border-color .15s, transform .15s;
+  }
+  .card:hover,.card:focus-visible{border-color:var(--paper);transform:translateY(-2px)}
+  .card .pic{font-size:30px;line-height:1}
+  .card h2{margin:2px 0 0;font-size:18px;font-weight:800;letter-spacing:-.01em}
+  .card p{margin:0;font-size:13.5px;line-height:1.55;color:var(--muted);flex:1}
+  .card ul{margin:2px 0 0;padding-left:17px;font-size:12.5px;line-height:1.7;color:var(--muted)}
+  .card .go{margin-top:10px;font-size:13px;font-weight:700;color:var(--paper)}
+  .card.tournee{border-left:3px solid var(--signe)}
+  .card.fibre{border-left:3px solid var(--route)}
+
+  .duo{
+    margin-top:18px;background:var(--ink-2);border:1px solid var(--line);
+    border-radius:14px;padding:16px 18px;font-size:13.5px;line-height:1.65;color:var(--muted)
+  }
+  .duo b{color:var(--paper)}
+  .duo h3{margin:0 0 8px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:700}
+
+  footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);
+         font-size:12px;line-height:1.7;color:var(--muted)}
+  footer a{color:var(--paper)}
+  .tip{display:inline-block;margin-top:12px;background:#274a2f;border:1px solid #2f6b3f;
+       border-radius:10px;padding:9px 14px;font-size:13px;font-weight:700;
+       color:var(--paper);text-decoration:none}
+  a:focus-visible,.card:focus-visible{outline:2px solid #fff;outline-offset:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>MohaBanger2ouf</h1>
+    <p class="baseline">Deux outils pour la prospection fibre :<br>savoir <b>où aller</b>, et <b>ne rien oublier</b> sur place.</p>
+    <p class="intro">Tout tourne dans le navigateur, rien n'est envoyé sur un serveur.
+      Fonctionne sur téléphone comme sur ordinateur.</p>
+  </header>
+
+  <div class="cards">
+
+    <a class="card tournee" href="tournee.html">
+      <span class="pic">🏠</span>
+      <h2>Ma tournée</h2>
+      <p>Le porte-à-porte sur la carte : chaque maison de la commune, sa couleur, son opérateur, sa note.</p>
+      <ul>
+        <li>Toutes les maisons chargées depuis OpenStreetMap</li>
+        <li>Signé, refus, absent, rappel, à repasser</li>
+        <li>Ordre de passage optimisé, lasso, liste de repasse</li>
+      </ul>
+      <span class="go">Ouvrir ma tournée →</span>
+    </a>
+
+    <a class="card fibre" href="fibre.html">
+      <span class="pic">🗺️</span>
+      <h2>Carte fibre</h2>
+      <p>Où la fibre est posée en Bretagne, et surtout <b>quel opérateur la commercialise</b>, commune par commune.</p>
+      <ul>
+        <li>1 526 communes, données Arcep à l'adresse</li>
+        <li>Free, Orange, Bouygues, SFR comparés</li>
+        <li>Temps de trajet depuis Rennes, voiture ou train</li>
+      </ul>
+      <span class="go">Ouvrir la carte fibre →</span>
+    </a>
+
+  </div>
+
+  <div class="duo">
+    <h3>Les deux ensemble</h3>
+    Sur la <b>carte fibre</b>, ouvre une commune et clique <b>« Prospecter cette commune »</b> :
+    elle s'ajoute directement dans <b>ma tournée</b>, au bon endroit, prête à charger ses maisons.
+    Dans l'autre sens, le menu ville de la tournée renvoie vers la fiche fibre de la commune active —
+    pratique pour savoir quel opérateur passe avant de sonner.
+  </div>
+
+  <footer>
+    Données de tournée stockées sur ton appareil uniquement — pense à exporter ta sauvegarde régulièrement.<br>
+    Éligibilité fibre : Arcep « Ma connexion internet ». Fonds de carte : OpenStreetMap.
+    <br>
+    <a class="tip" href="https://revolut.me/zamdane" target="_blank" rel="noopener">💸 Laisser un pourboire</a>
+  </footer>
+
+</div>
+</body>
+</html>

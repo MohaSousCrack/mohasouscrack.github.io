@@ -1,0 +1,1703 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>MohaBanger2ouf</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  :root{
+    --ink:#14161B; --ink-2:#20242C; --line:#343A45;
+    --paper:#FFFFFF; --muted:#9AA3B0;
+    --signe:#1FA45B; --refus:#E33A2E; --absent:#F2A31B;
+    --rappel:#12A5BF; --repasser:#9B59B6; --avoir:#6E7A8A;
+    --route:#2A7FFF;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;height:100%;overflow:hidden;
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    background:var(--ink);color:var(--paper)}
+  #app{display:flex;flex-direction:column;height:100%}
+
+  header{background:var(--ink);padding:10px 12px 8px;flex:0 0 auto;border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+  .brand h1{margin:0;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+  .brand h1 a{color:inherit;text-decoration:none}
+  .linkBtn{display:block;width:100%;text-align:center;text-decoration:none;
+    border:1px solid var(--line);background:var(--ink-2);color:var(--paper);
+    border-radius:10px;padding:12px;font-size:13.5px;font-weight:700}
+  .cityBtn{display:flex;align-items:center;gap:4px;background:var(--ink-2);border:1px solid var(--line);
+    border-radius:999px;color:var(--paper);padding:6px 10px;font-size:12.5px;font-weight:700;cursor:pointer;
+    max-width:40vw;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  .iconBtn{flex:0 0 auto;width:28px;height:28px;border-radius:50%;border:1px solid var(--line);
+    background:var(--ink-2);color:var(--paper);font-size:13px;font-weight:800;cursor:pointer;
+    display:flex;align-items:center;justify-content:center}
+  .brand .save{margin-left:auto;font-size:10.5px;color:var(--muted);flex:0 0 auto}
+  .chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{flex:0 0 auto;display:flex;align-items:center;gap:6px;background:var(--ink-2);
+    border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:13px;
+    font-weight:600;color:var(--paper);cursor:pointer;font-variant-numeric:tabular-nums}
+  .chip .dot{width:9px;height:9px;border-radius:50%}
+  .chip.active{border-color:var(--paper)}
+  .chip.total .dot{display:none}
+
+  #map{flex:1 1 auto;min-height:0}
+  .leaflet-container{background:#DDE3E9;font:inherit}
+  .seq{background:var(--ink);color:#fff;border:1.5px solid #fff;border-radius:999px;
+    width:20px;height:20px;display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:800;font-variant-numeric:tabular-nums}
+
+  footer{flex:0 0 auto;background:var(--ink);border-top:1px solid var(--line);
+    padding:10px 12px calc(10px + env(safe-area-inset-bottom))}
+  .stamps{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}
+  .stamp{border:1px solid var(--line);background:var(--ink-2);color:var(--paper);
+    border-radius:10px;padding:9px 2px;font-size:12.5px;font-weight:700;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:5px}
+  .stamp .dot{width:12px;height:12px;border-radius:50%}
+  .stamp.sel{border-color:transparent;color:#fff}
+  .stamp.sel .dot{background:#fff!important}
+  .actions{display:flex;gap:6px}
+  .btn{flex:1;border:1px solid var(--line);background:var(--ink-2);color:var(--paper);
+    border-radius:10px;padding:10px 2px;font-size:12.5px;font-weight:600;cursor:pointer}
+  .btn.primary{border-color:transparent;color:#fff}
+  .btn.on{background:var(--route);border-color:transparent;color:#fff}
+  .btn:disabled{opacity:.5}
+  .hint{margin:8px 2px 0;font-size:12px;color:var(--muted);text-align:center;min-height:15px}
+
+  .pp{display:flex;flex-direction:column;gap:8px;min-width:220px}
+  .pp .row{display:flex;gap:5px}
+  .pp .row button{flex:1;border:none;border-radius:8px;padding:8px 3px;font-size:11.5px;
+    font-weight:700;color:#fff;cursor:pointer}
+  .pp .ops button{flex:1;border-radius:8px;padding:7px 2px;font-size:10.5px;font-weight:800;
+    color:#fff;border:none;cursor:pointer;opacity:.55}
+  .pp .ops button.sel{opacity:1;outline:2px solid #14161B}
+  .pp input{width:100%;border:1px solid #CBD2DA;border-radius:8px;padding:8px 9px;font-size:13px}
+  .pp .del{background:transparent;border:1px solid #C33;color:#C33;border-radius:8px;
+    padding:7px;font-size:11.5px;font-weight:700;cursor:pointer}
+  .pp .addr{font-size:12px;font-weight:700;color:#333;margin:-2px 0 0}
+  .pp .fibreTag{font-size:11.5px;font-weight:700;color:#7a4a00;background:#FFF1CC;
+    border:1px solid #F2C46B;border-radius:7px;padding:5px 7px;margin:-3px 0 0}
+  .pp .fibreTag.ok{color:#14532d;background:#E4F5E9;border-color:#9BD3AE}
+  .pp .fibreTag.off{color:#5A6472;background:#EEF1F4;border-color:#C7CFD8}
+  .leaflet-popup-content{margin:10px 12px}
+
+  /* au-dessus des panneaux (z-index 4000) : un message affiche pendant qu'une
+     feuille est ouverte doit rester visible, sinon l'action parait sans effet */
+  #toast{position:absolute;left:50%;transform:translateX(-50%);bottom:170px;z-index:5000;
+    background:var(--ink);color:var(--paper);border:1px solid var(--line);border-radius:10px;
+    padding:10px 14px;font-size:13px;display:none;align-items:center;gap:12px;max-width:88vw}
+  #toast button{border:none;background:none;color:#F2A31B;font-weight:700;font-size:13px;cursor:pointer}
+
+  .panel{position:absolute;inset:0;z-index:4000;display:none;flex-direction:column;
+    justify-content:flex-end;background:rgba(10,12,16,.55)}
+  .sheet{background:var(--ink);border-top:1px solid var(--line);border-radius:16px 16px 0 0;
+    padding:16px 16px calc(16px + env(safe-area-inset-bottom));max-height:82%;overflow-y:auto}
+  .sheet h2{margin:14px 0 10px;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+  .sheet h2:first-child{margin-top:0}
+  .sheet .note{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.45}
+  .cityRow{display:flex;align-items:center;gap:10px;padding:11px 4px;border-bottom:1px solid var(--line)}
+  .cityRow .name{flex:1;font-size:15px;font-weight:700}
+  .cityRow .meta{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .cityRow .x{border:1px solid var(--line);background:none;color:var(--muted);border-radius:8px;
+    padding:6px 10px;font-size:12px;cursor:pointer}
+  .cityRow.active .name{color:#7EC8FF}
+  .newCity{display:flex;flex-direction:column;gap:8px}
+  .newCity input{background:var(--ink-2);border:1px solid var(--line);border-radius:10px;
+    color:var(--paper);padding:11px 12px;font-size:15px;width:100%}
+  .row2{display:flex;gap:8px}
+  .closeSheet{margin-top:14px;width:100%;border:1px solid var(--line);background:none;
+    color:var(--muted);border-radius:10px;padding:11px;font-size:13px;cursor:pointer}
+  .bigBtn{width:100%;border:1px solid var(--line);background:var(--ink-2);color:var(--paper);
+    border-radius:10px;padding:12px;font-size:13.5px;font-weight:700;cursor:pointer}
+  .bigBtn.accent{background:#274a2f;border-color:#2f6b3f}
+  .bigBtn.danger{border-color:#7a2f2f;background:#3a2023}
+  #exportTa{width:100%;height:140px;background:var(--ink-2);color:var(--paper);
+    border:1px solid var(--line);border-radius:10px;padding:10px;font-size:11px}
+  #seedProg{display:none;height:7px;background:var(--ink-2);border:1px solid var(--line);
+    border-radius:99px;margin-top:8px;overflow:hidden}
+  #seedProgBar{height:100%;width:0%;background:var(--signe);transition:width .4s}
+
+  .listRow{display:flex;align-items:center;gap:9px;padding:10px 2px;border-bottom:1px solid var(--line);cursor:pointer}
+  .listRow .dot{flex:0 0 auto;width:12px;height:12px;border-radius:50%;border:2.5px solid transparent}
+  .listRow .txt{flex:1;min-width:0}
+  .listRow .l1{font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .listRow .l2{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .listRow .op{flex:0 0 auto;font-size:10px;font-weight:800;border-radius:6px;padding:3px 6px;color:#fff}
+  .legend{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--muted);margin-top:6px}
+  .legend span{display:flex;align-items:center;gap:5px}
+  .legend i{width:10px;height:10px;border-radius:50%;display:inline-block}
+
+  .pulse{animation:pulse 1.6s ease-out infinite}
+  @keyframes pulse{0%{opacity:1}70%{opacity:.35}100%{opacity:1}}
+  @media (prefers-reduced-motion:reduce){.pulse{animation:none}}
+  button:focus-visible,input:focus-visible{outline:2px solid #fff;outline-offset:2px}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand">
+      <h1><a href="index.html" title="Retour à l'accueil">◀&nbsp;MohaBanger2ouf</a></h1>
+      <button class="cityBtn" id="cityBtn">Ville ▾</button>
+      <button class="cityBtn" id="listBtn">☰</button>
+      <span class="save" id="saveState"></span>
+      <button class="iconBtn" id="helpBtn" title="Comment ça marche">?</button>
+      <button class="iconBtn" id="aboutBtn" title="À propos">ℹ</button>
+    </div>
+    <div class="chips" id="chips"></div>
+  </header>
+
+  <div id="map"></div>
+  <div id="toast"><span id="toastMsg"></span><button id="toastBtn"></button></div>
+
+  <!-- Panneau villes + données -->
+  <div class="panel" id="cityPanel">
+    <div class="sheet">
+      <h2>Mes villes</h2>
+      <div id="cityList"></div>
+      <div class="newCity" style="margin-top:12px">
+        <input id="cityInput" type="text" placeholder="Nom de la commune (ex : Pacé, Le Rheu…)" autocomplete="off">
+        <div class="row2">
+          <button class="btn" id="btnSearchCity">🔎 Chercher</button>
+          <button class="btn" id="btnUseView">Utiliser la vue actuelle</button>
+        </div>
+      </div>
+
+      <h2>Éligibilité fibre</h2>
+      <a class="linkBtn" id="linkFibre" href="fibre.html">🗺️ Voir quel opérateur passe ici</a>
+      <div class="note">
+        Ouvre la carte fibre sur la ville active : la part des adresses raccordables,
+        et lesquelles Free, Orange, Bouygues et SFR commercialisent vraiment.
+      </div>
+
+      <h2>Maisons de la ville active</h2>
+      <button class="bigBtn accent" id="btnArcep">🏠 Charger toutes les maisons (Arcep)</button>
+      <div class="note">
+        Découpage communal exact : que les bâtiments de la commune, jamais ceux d'à côté.
+        Chaque maison arrive avec son adresse, son nombre de logements et les opérateurs
+        qui y commercialisent la fibre. Les <b>⚡ ambrées</b> sont celles où Free passe
+        et où un concurrent au moins ne passe pas.
+      </div>
+      <button class="bigBtn" id="btnSeed" style="margin-top:10px">🗺️ Charger depuis OpenStreetMap (secours)</button>
+      <div id="seedProg"><div id="seedProgBar"></div></div>
+      <div class="note">
+        À utiliser si la commune n'est pas dans les données Arcep. Découpage moins net,
+        et sans information de fibre.
+      </div>
+      <button class="bigBtn" id="btnClearAvoir" style="margin-top:8px">🧹 Retirer les « À voir » de la ville</button>
+      <div class="note">Utile pour nettoyer un mauvais chargement : seuls les points gris « À voir » sont supprimés, tes points coloriés restent.</div>
+
+      <h2>Sauvegarde (100 % locale)</h2>
+      <div class="row2">
+        <button class="btn" id="btnExport">⬇ Exporter…</button>
+        <button class="btn" id="btnImport">⬆ Importer</button>
+      </div>
+      <div class="note">
+        Tes données restent <b>sur ton appareil</b> (mémoire du navigateur) — rien n'est envoyé ailleurs.
+        L'import <b>fusionne</b> avec l'existant au lieu de tout remplacer : les points de tes collègues
+        s'additionnent aux tiens (statut le plus récent conservé, tes notes jamais écrasées).
+        Importer accepte : les sauvegardes de l'appli (.json), les <b>fichiers de commune Arcep</b>
+        du dossier <code>points/</code>, et les exports GeoJSON d'overpass-turbo.eu.
+      </div>
+      <input type="file" id="fileInput" accept=".json,.geojson,application/json,application/geo+json" style="display:none">
+
+      <button class="closeSheet" id="btnCloseSheet">Fermer</button>
+    </div>
+  </div>
+
+  <!-- Choix d'export -->
+  <div class="panel" id="exportChoicePanel">
+    <div class="sheet">
+      <h2>Exporter quoi ?</h2>
+      <button class="bigBtn accent" id="btnExportJson">💾 Sauvegarde complète (.json)</button>
+      <div class="note">Tout : villes, points, statuts, opérateurs, notes. C'est le fichier à réimporter pour tout retrouver (autre appareil, nouvelle version…).</div>
+      <button class="bigBtn" id="btnExportTxt" style="margin-top:10px">📝 Notes & repasse (.txt)</button>
+      <div class="note">Lisible par un humain : tes Signés, Rappels, À repasser, Absents et toutes les maisons annotées de la ville active, avec adresse et opérateur.</div>
+      <button class="closeSheet" id="btnCloseExportChoice">Fermer</button>
+    </div>
+  </div>
+
+  <!-- Secours export (téléchargement bloqué) -->
+  <div class="panel" id="exportPanel">
+    <div class="sheet">
+      <h2>Copie ta sauvegarde</h2>
+      <textarea id="exportTa" readonly></textarea>
+      <button class="bigBtn" id="btnSelectAll" style="margin-top:8px">Tout sélectionner</button>
+      <button class="closeSheet" id="btnCloseExport">Fermer</button>
+    </div>
+  </div>
+
+  <!-- Plan B overpass-turbo -->
+  <div class="panel" id="planBPanel">
+    <div class="sheet">
+      <h2>Plan B — récupérer les maisons</h2>
+      <div class="note" style="margin-top:0">
+        Le chargement direct est bloqué par ton navigateur. En 3 gestes :<br>
+        ① ouvre overpass-turbo avec la requête déjà prête, touche « Exécuter » ;<br>
+        ② en haut de la page : Exporter → GeoJSON (un fichier se télécharge) ;<br>
+        ③ reviens ici et importe ce fichier.
+      </div>
+      <button class="bigBtn accent" id="btnTurbo" style="margin-top:10px">① Ouvrir overpass-turbo (requête prête)</button>
+      <button class="bigBtn" id="btnPlanBImport" style="margin-top:8px">③ Importer le GeoJSON téléchargé</button>
+      <button class="closeSheet" id="btnClosePlanB">Fermer</button>
+    </div>
+  </div>
+
+  <!-- Liste de repasse -->
+  <div class="panel" id="listPanel">
+    <div class="sheet">
+      <h2>Liste — <span id="listCity"></span></h2>
+      <div class="chips" id="listChips" style="margin-bottom:4px"></div>
+      <div class="legend">
+        <span><i style="background:#E1000F"></i>Free</span>
+        <span><i style="background:#FF7900"></i>Orange</span>
+        <span><i style="background:#2ECC71"></i>SFR</span>
+        <span><i style="background:#33A1FD"></i>Bouygues</span>
+        <span style="color:var(--muted)">= anneau du point</span>
+      </div>
+      <div id="listRows" style="margin-top:6px"></div>
+      <button class="closeSheet" id="btnCloseList">Fermer</button>
+    </div>
+  </div>
+
+  <!-- Actions lasso -->
+  <div class="panel" id="lassoPanel">
+    <div class="sheet">
+      <h2><span id="lassoCount">0</span> maisons dans la zone</h2>
+      <div class="note" style="margin-top:0">Passer toutes ces maisons en :</div>
+      <div class="stamps" id="lassoStamps" style="margin-top:8px"></div>
+      <button class="bigBtn accent" id="btnLassoRoute">⇢ Calculer le trajet sur cette zone</button>
+      <button class="bigBtn danger" id="btnLassoDelete" style="margin-top:8px">🗑 Supprimer ces points</button>
+      <button class="bigBtn danger" id="btnLassoKeep" style="margin-top:8px">✂ Garder seulement cette zone (supprime le reste de la ville)</button>
+      <button class="closeSheet" id="btnCloseLasso">Fermer</button>
+    </div>
+  </div>
+
+  <!-- Aide / première ouverture -->
+  <div class="panel" id="helpPanel">
+    <div class="sheet">
+      <h2>Comment ça marche</h2>
+      <div class="note" style="margin-top:0;font-size:13px;line-height:1.55">
+        <b>1.</b> Menu ville (en haut) → ajoute ta commune → « 🏠 Charger toutes les maisons » : chaque bâtiment arrive en gris « À voir ».<br><br>
+        <b>2.</b> En tournée : touche une maison → choisis sa couleur (Signé, Refus, Absent, Rappel, À repasser), l'opérateur du foyer (l'anneau coloré) et une note. Reste appuyé sur la carte pour ajouter une maison manquante.<br><br>
+        <b>3.</b> « ⇢ Trajet » : ordre de passage optimisé des maisons à faire. « ◌ Lasso » : dessine une zone pour tout changer d'un coup ou calculer le trajet dessus.<br><br>
+        <b>4.</b> « ☰ » : ta liste de repasse (Rappels, À repasser, Absents) avec date et heure.<br><br>
+        <b>5.</b> Tout est enregistré <b>sur ton appareil</b>. « Exporter / Importer » pour sauvegarder ou fusionner avec les collègues.
+      </div>
+      <button class="bigBtn accent" id="btnCloseHelp" style="margin-top:12px">C'est parti ! 🚀</button>
+    </div>
+  </div>
+
+  <!-- À propos -->
+  <div class="panel" id="aboutPanel">
+    <div class="sheet">
+      <h2>À propos</h2>
+      <div class="note" style="margin-top:0;font-size:13.5px;line-height:1.6">
+        <b>MohaBanger2ouf</b> est un petit site mis en place par <b>Moha</b>.<br><br>
+        Pourquoi ? Parce que ça m'énervait de devoir tout noter, de me perdre dans une ville,
+        d'oublier qui était absent et où… Là, tout est sur la carte — et ça a le mérite d'être clair.<br><br>
+        Tes données restent sur ton appareil, rien n'est envoyé sur un serveur.
+      </div>
+      <div class="note" style="font-size:13.5px;line-height:1.6">
+        🍬 Si ce site t'a aidé dans tes tournées, tu peux me laisser un petit pourboire —
+        même 1 €, de quoi m'acheter un paquet de bonbons, ça me rendrait heureux de fou :
+      </div>
+      <a class="bigBtn accent" style="display:block;text-align:center;text-decoration:none;margin-top:10px"
+         href="https://revolut.me/zamdane" target="_blank" rel="noopener">💸 Laisser un pourboire (Revolut)</a>
+      <button class="closeSheet" id="btnCloseAbout">Fermer</button>
+    </div>
+  </div>
+
+  <!-- Rappel de sauvegarde -->
+  <div class="panel" id="backupPanel">
+    <div class="sheet">
+      <h2>⚠️ Sauvegarde tes données</h2>
+      <div class="note" style="margin-top:0;font-size:13.5px;line-height:1.6">
+        <b>Important :</b> tout est stocké <b>uniquement sur cet appareil</b> — rien n'est enregistré dans le cloud.
+        Téléphone perdu, navigateur changé ou données de navigation effacées = tournée perdue avec.<br><br>
+        Exporte ta sauvegarde (.json) et garde-la en lieu sûr (Drive, mail, clé USB…). À refaire régulièrement.
+      </div>
+      <button class="bigBtn accent" id="btnBackupNow" style="margin-top:10px">⬇ Exporter maintenant (.json)</button>
+      <button class="closeSheet" id="btnBackupLater">Me le rappeler la semaine prochaine</button>
+    </div>
+  </div>
+
+  <footer>
+    <div class="stamps" id="stamps"></div>
+    <div class="actions">
+      <button class="btn" id="btnLocate">◎ Pos.</button>
+      <button class="btn primary" id="btnStampHere">📍 Ici</button>
+      <button class="btn" id="btnRoute">⇢ Trajet</button>
+      <button class="btn" id="btnLasso">◌ Lasso</button>
+    </div>
+    <div class="hint" id="hint"></div>
+  </footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+(function(){
+  var STATUSES = {
+    signe:    {label:"Signé",      color:"#1FA45B"},
+    refus:    {label:"Refus",      color:"#E33A2E"},
+    absent:   {label:"Absent",     color:"#F2A31B"},
+    rappel:   {label:"Rappel",     color:"#12A5BF"},
+    repasser: {label:"À repasser", color:"#9B59B6"},
+    avoir:    {label:"À voir",     color:"#6E7A8A"}
+  };
+  var ORDER = ["signe","refus","absent","rappel","repasser","avoir"];
+  var OPS = {
+    free:     {label:"Free",     color:"#E1000F"},
+    orange:   {label:"Orange",   color:"#FF7900"},
+    sfr:      {label:"SFR",      color:"#2ECC71"},
+    bouygues: {label:"Bouygues", color:"#33A1FD"},
+    autre:    {label:"Autre",    color:"#C0C0C0"}
+  };
+  var OP_ORDER = ["free","orange","sfr","bouygues","autre"];
+  var KEY = "tournee-v3", KEY_V2 = "tournee-v2", KEY_V1 = "tournee-lhermitage";
+
+  var data = { cities: [], houses: [], activeCityId: null };
+  var selected = "avoir";
+  var filter = null;
+  var fibreFilter = false;      // n'afficher que les « Free devance »
+  var lastUndo = null;
+  var routeOn = false, routeSelection = null;
+  var mePos = null, placingMe = false;
+  var markersById = {};
+  var lassoMode = false, lassoSel = [];
+
+  // ---------- Stockage 100 % local : claude.ai OU localStorage du navigateur ----------
+  var mode = "memory";
+  try{
+    if (window.storage) mode = "claude";
+    else if (window.localStorage){ localStorage.setItem("__t","1"); localStorage.removeItem("__t"); mode = "local"; }
+  }catch(e){ mode = "memory"; }
+
+  async function stGet(k){
+    if (mode === "claude"){ var r = await window.storage.get(k); return r ? r.value : null; }
+    if (mode === "local") return localStorage.getItem(k);
+    return null;
+  }
+  async function stSet(k, v){
+    if (mode === "claude"){ var r = await window.storage.set(k, v); return !!r; }
+    if (mode === "local"){ localStorage.setItem(k, v); return true; }
+    return false;
+  }
+  function setSave(t){ document.getElementById("saveState").textContent = t; }
+
+  // ---------- Carte ----------
+  var canvasRenderer = L.canvas({tolerance: 8});
+  var map = L.map("map", {zoomControl:false, preferCanvas:true, renderer: canvasRenderer}).setView([46.6, 2.4], 6);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:19, attribution:"© OpenStreetMap"}).addTo(map);
+  L.control.zoom({position:"topright"}).addTo(map);
+  var routeLayer = L.layerGroup().addTo(map);
+  var lassoLayer = L.layerGroup().addTo(map);
+  var layer = L.layerGroup().addTo(map);
+  var meMarker = null;
+
+  // ---------- Utilitaires ----------
+  function uid(){ return Date.now() + "-" + Math.random().toString(36).slice(2,7); }
+  function activeCity(){ return data.cities.find(function(c){ return c.id === data.activeCityId; }) || null; }
+  function cityHouses(){ return data.houses.filter(function(h){ return h.cityId === data.activeCityId; }); }
+  function haversine(a, b){
+    var R = 6371000, rad = Math.PI/180;
+    var dLat = (b.lat-a.lat)*rad, dLng = (b.lng-a.lng)*rad;
+    var s = Math.sin(dLat/2)*Math.sin(dLat/2) +
+            Math.cos(a.lat*rad)*Math.cos(b.lat*rad)*Math.sin(dLng/2)*Math.sin(dLng/2);
+    return 2*R*Math.asin(Math.sqrt(s));
+  }
+  function coordKey(lat, lng){ return lat.toFixed(5) + "," + lng.toFixed(5); }
+  function labelOf(h){
+    return h.addr ? h.addr : ("Maison (" + h.lat.toFixed(5) + ", " + h.lng.toFixed(5) + ")");
+  }
+  function fmtTs(ts, withYear){
+    if (!ts) return "";
+    var d = new Date(ts);
+    var dd = ("0"+d.getDate()).slice(-2), mm = ("0"+(d.getMonth()+1)).slice(-2);
+    var hh = ("0"+d.getHours()).slice(-2), mi = ("0"+d.getMinutes()).slice(-2);
+    return dd + "/" + mm + (withYear ? "/" + d.getFullYear() : "") + " " + hh + ":" + mi;
+  }
+  function defaultHint(){
+    return "Touche une maison : couleur, opérateur, note. Reste appuyé sur la carte pour ajouter un point.";
+  }
+  function setHint(t){ document.getElementById("hint").textContent = t || defaultHint(); }
+
+  // ---------- Chargement + migrations ----------
+  async function load(){
+    try{
+      var v = await stGet(KEY);
+      if (v){ data = JSON.parse(v); setSave("✓ local"); return; }
+    }catch(e){}
+    try{
+      var v2 = await stGet(KEY_V2);
+      if (v2){ data = JSON.parse(v2); await save(); setSave("✓ importé (v2)"); return; }
+    }catch(e){}
+    try{
+      var v1 = await stGet(KEY_V1);
+      if (v1){
+        var oldHouses = JSON.parse(v1) || [];
+        var c = { id: uid(), name: "L'Hermitage", lat: 48.1276, lng: -1.8177, zoom: 15 };
+        data = { cities:[c], activeCityId:c.id,
+                 houses: oldHouses.map(function(h){ h.cityId = c.id; return h; }) };
+        await save(); setSave("✓ importé (v1)"); return;
+      }
+    }catch(e){}
+    var c0 = { id: uid(), name: "L'Hermitage", lat: 48.1276, lng: -1.8177, zoom: 15 };
+    data = { cities:[c0], activeCityId:c0.id, houses:[] };
+    await save();
+  }
+  var saveTimer = null;
+  function save(){
+    return new Promise(function(res){
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(async function(){
+        try{
+          var ok = await stSet(KEY, JSON.stringify(data));
+          setSave(ok ? "✓ local" : "⚠ exporte un fichier !");
+        }catch(e){ setSave("⚠ exporte un fichier !"); }
+        res();
+      }, 250);
+    });
+  }
+
+  // ---------- Etat fibre (Arcep) ----------
+  // h.ops est un masque : 1 Free, 2 Orange, 4 Bouygues, 8 SFR. Absent = on ne
+  // sait pas (maison posee a la main ou chargee depuis OpenStreetMap).
+  var FIBRE = [[1,"Free"],[2,"Orange"],[4,"Bouygues"],[8,"SFR"]];
+  function fibreEtat(h){
+    if (h.ops == null) return null;
+    if (!h.ops) return "sans";
+    if ((h.ops & 1) && (h.ops & 14) !== 14) return "avantage";
+    return (h.ops & 1) ? "complet" : "sansfree";
+  }
+  function fibreListe(h, present){
+    return FIBRE.filter(function(o){ return present ? (h.ops & o[0]) : !(h.ops & o[0]); })
+                .map(function(o){ return o[1]; });
+  }
+
+  // ---------- Rendu ----------
+  // L'anneau porte l'operateur du foyer des qu'on le connait ; tant qu'on ne le
+  // sait pas, il sert a montrer l'etat fibre. Le rayon, lui, reste toujours
+  // parlant : gros = occasion, petit = pas de fibre.
+  function ringOf(h){
+    if (h.op && OPS[h.op]) return {color: OPS[h.op].color, weight: 3};
+    var e = fibreEtat(h);
+    if (e === "avantage") return {color: "#F2A31B", weight: 3};
+    if (e === "sans")     return {color: "#5A6472", weight: 1.5};
+    return {color: "#FFFFFF", weight: 1.5};
+  }
+  function rayonOf(h){
+    var e = fibreEtat(h);
+    return e === "avantage" ? 10 : e === "sans" ? 6 : 9;
+  }
+  function renderAll(){
+    layer.clearLayers(); markersById = {};
+    cityHouses().forEach(function(h){
+      if (filter && h.status !== filter) return;
+      if (fibreFilter && fibreEtat(h) !== "avantage") return;
+      addMarker(h);
+    });
+    renderChips(); renderCityBtn();
+    if (routeOn) drawRoute(); else routeLayer.clearLayers();
+  }
+  function addMarker(h){
+    var st = STATUSES[h.status] || STATUSES.avoir;
+    var ring = ringOf(h);
+    var m = L.circleMarker([h.lat, h.lng], {radius:rayonOf(h), color:ring.color,
+      weight:ring.weight, fillColor:st.color, fillOpacity:fibreEtat(h) === "sans" ? .6 : .95});
+    var openChooser = function(e){ if (e) L.DomEvent.stop(e); m.bindPopup(buildPopup(h), {closeButton:false}).openPopup(); };
+    m.on("click", openChooser);
+    m.on("contextmenu", openChooser);
+    m.addTo(layer);
+    markersById[h.id] = m;
+  }
+  function refreshMarker(h){
+    var m = markersById[h.id];
+    if (!m) return;
+    if (filter && h.status !== filter){ layer.removeLayer(m); delete markersById[h.id]; return; }
+    var ring = ringOf(h);
+    m.setStyle({fillColor: (STATUSES[h.status]||STATUSES.avoir).color, color: ring.color, weight: ring.weight});
+    m.setRadius(rayonOf(h));
+  }
+  function renderCityBtn(){
+    var c = activeCity();
+    document.getElementById("cityBtn").textContent = (c ? c.name : "Ville") + " ▾";
+  }
+  function buildPopup(h){
+    var wrap = document.createElement("div"); wrap.className = "pp";
+    if (h.addr){
+      var ad = document.createElement("div"); ad.className = "addr"; ad.textContent = h.addr;
+      if (h.logements > 1) ad.textContent += " — " + h.logements + " logements";
+      wrap.appendChild(ad);
+    }
+    var etat = fibreEtat(h);
+    if (etat){
+      var fb = document.createElement("div"); fb.className = "fibreTag";
+      if (etat === "sans"){
+        fb.className += " off";
+        fb.textContent = "✕ Pas de fibre à cette adresse";
+      } else if (etat === "avantage"){
+        fb.textContent = "⚡ Fibre : " + fibreListe(h, true).join(", ") +
+                         " — pas " + fibreListe(h, false).join(", ");
+      } else {
+        fb.className += " ok";
+        fb.textContent = "✓ Fibre : " + fibreListe(h, true).join(", ");
+      }
+      wrap.appendChild(fb);
+    }
+    var row1 = document.createElement("div"); row1.className = "row";
+    var row2 = document.createElement("div"); row2.className = "row";
+    ORDER.forEach(function(k, i){
+      var b = document.createElement("button");
+      b.textContent = STATUSES[k].label;
+      b.style.background = STATUSES[k].color;
+      if (h.status === k) b.style.outline = "2px solid #14161B";
+      b.addEventListener("click", function(){
+        lastUndo = {type:"paint", id:h.id, prev:h.status};
+        h.status = k;
+        h.statusTs = Date.now();
+        refreshMarker(h);
+        renderChips(); save(); map.closePopup();
+        toast("→ " + STATUSES[k].label, "Annuler", undoLast);
+      });
+      (i < 3 ? row1 : row2).appendChild(b);
+    });
+    var ops = document.createElement("div"); ops.className = "row ops";
+    OP_ORDER.forEach(function(k){
+      var b = document.createElement("button");
+      b.textContent = OPS[k].label;
+      b.style.background = OPS[k].color;
+      if (h.op === k) b.className = "sel";
+      b.addEventListener("click", function(){
+        h.op = (h.op === k) ? null : k;
+        refreshMarker(h); save();
+        Array.prototype.forEach.call(ops.children, function(ch){ ch.className = ""; });
+        if (h.op) b.className = "sel";
+      });
+      ops.appendChild(b);
+    });
+    var noteIn = document.createElement("input");
+    noteIn.type = "text"; noteIn.placeholder = "Note (ex : revenir après 18h, Mme X…)";
+    noteIn.value = h.note || "";
+    noteIn.addEventListener("input", function(){ h.note = noteIn.value; save(); });
+    var del = document.createElement("button");
+    del.textContent = "Supprimer ce point"; del.className = "del";
+    del.addEventListener("click", function(){
+      data.houses = data.houses.filter(function(x){ return x.id !== h.id; });
+      save(); renderAll(); map.closePopup();
+    });
+    wrap.appendChild(row1); wrap.appendChild(row2);
+    wrap.appendChild(ops); wrap.appendChild(noteIn); wrap.appendChild(del);
+    return wrap;
+  }
+  function renderChips(){
+    var c = document.getElementById("chips"); c.innerHTML = "";
+    var hs = cityHouses();
+    var total = document.createElement("button");
+    total.className = "chip total" + (filter === null ? " active" : "");
+    total.innerHTML = "<span class='dot'></span>" + hs.length + " maisons";
+    total.addEventListener("click", function(){ filter = null; fibreFilter = false; renderAll(); });
+    c.appendChild(total);
+
+    var nAv = 0;
+    for (var j = 0; j < hs.length; j++) if (fibreEtat(hs[j]) === "avantage") nAv++;
+    if (nAv){
+      var f = document.createElement("button");
+      f.className = "chip" + (fibreFilter ? " active" : "");
+      f.innerHTML = "<span class='dot' style='background:#F2A31B'></span>⚡ Free devance " + nAv;
+      f.title = "Fibre Free disponible, au moins un concurrent absent";
+      f.addEventListener("click", function(){ fibreFilter = !fibreFilter; renderAll(); });
+      c.appendChild(f);
+    }
+    ORDER.forEach(function(k){
+      var n = 0;
+      for (var i = 0; i < hs.length; i++) if (hs[i].status === k) n++;
+      var b = document.createElement("button");
+      b.className = "chip" + (filter === k ? " active" : "");
+      b.innerHTML = "<span class='dot' style='background:" + STATUSES[k].color + "'></span>" + STATUSES[k].label + " " + n;
+      b.addEventListener("click", function(){ filter = (filter === k ? null : k); renderAll(); });
+      c.appendChild(b);
+    });
+  }
+  function renderStamps(){
+    var s = document.getElementById("stamps"); s.innerHTML = "";
+    ORDER.forEach(function(k){
+      var b = document.createElement("button");
+      b.className = "stamp" + (selected === k ? " sel" : "");
+      if (selected === k) b.style.background = STATUSES[k].color;
+      b.innerHTML = "<span class='dot' style='background:" + STATUSES[k].color + "'></span>" + STATUSES[k].label;
+      b.addEventListener("click", function(){ selected = k; renderStamps(); styleStampHere(); });
+      s.appendChild(b);
+    });
+  }
+  function styleStampHere(){
+    document.getElementById("btnStampHere").style.background = STATUSES[selected].color;
+  }
+
+  // ---------- Ajout / annulation ----------
+  function addHouse(lat, lng, status){
+    if (!data.activeCityId){ toast("Crée d'abord une ville."); openSheet(); return; }
+    var st = status || selected;
+    var h = { id: uid(), cityId: data.activeCityId, lat: lat, lng: lng, status: st, ts: Date.now(), statusTs: Date.now() };
+    data.houses.push(h);
+    if (!filter || filter === h.status) addMarker(h);
+    lastUndo = {type:"add", id:h.id};
+    renderChips(); save();
+    toast(STATUSES[st].label + " ajouté", "Annuler", undoLast);
+  }
+  function undoLast(){
+    if (!lastUndo) return;
+    if (lastUndo.type === "paint"){
+      var h = data.houses.find(function(x){ return x.id === lastUndo.id; });
+      if (h){ h.status = lastUndo.prev; h.statusTs = Date.now(); }
+    } else if (lastUndo.type === "add"){
+      data.houses = data.houses.filter(function(x){ return x.id !== lastUndo.id; });
+    }
+    lastUndo = null; save(); renderAll();
+  }
+
+  map.on("click", function(e){
+    if (placingMe){
+      placingMe = false;
+      setMe(e.latlng.lat, e.latlng.lng, false);
+      setHint();
+      toast("Position placée — le trajet partira d'ici.");
+      return;
+    }
+    map.closePopup();
+  });
+  map.on("contextmenu", function(e){ // appui long mobile / clic droit PC
+    if (lassoMode) return;
+    if (e && e.originalEvent && e.originalEvent.preventDefault) e.originalEvent.preventDefault();
+    addHouse(e.latlng.lat, e.latlng.lng, "avoir");
+  });
+
+  // ---------- GPS + position manuelle ----------
+  function setMe(lat, lng, zoomTo){
+    mePos = { lat: lat, lng: lng };
+    if (meMarker) map.removeLayer(meMarker);
+    meMarker = L.circleMarker([lat, lng], {radius:7, color:"#fff", weight:2,
+      fillColor:"#2A7FFF", fillOpacity:1, className:"pulse"}).addTo(map);
+    if (zoomTo) map.setView([lat, lng], Math.max(map.getZoom(), 17));
+  }
+  function startManualMe(){
+    placingMe = true;
+    setHint("📍 Touche la carte à l'endroit où tu es — ta position bleue s'y placera.");
+  }
+  function locate(cb){
+    var isFile = (location.protocol === "file:");
+    if (!navigator.geolocation){
+      toast(isFile ? "GPS bloqué sur un fichier local — place ta position à la main." : "GPS indisponible sur cet appareil.", "Placer", startManualMe);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(function(pos){
+      setMe(pos.coords.latitude, pos.coords.longitude, true);
+      if (cb) cb(mePos.lat, mePos.lng);
+    }, function(){
+      toast(isFile
+        ? "Chrome/Brave bloquent le GPS sur les fichiers locaux (file://). Héberge la page en https, ou place ta position à la main."
+        : "GPS refusé ou indisponible — place ta position à la main.",
+        "Placer", startManualMe);
+    }, {enableHighAccuracy:true, timeout:8000});
+  }
+  document.getElementById("btnLocate").addEventListener("click", function(){ locate(); });
+  document.getElementById("btnStampHere").addEventListener("click", function(){
+    locate(function(lat, lng){ addHouse(lat, lng); });
+  });
+
+  // ---------- Trajet ----------
+  function routePoints(){
+    var hs = cityHouses();
+    if (routeSelection){
+      var set = {};
+      routeSelection.forEach(function(id){ set[id] = 1; });
+      hs = hs.filter(function(h){ return set[h.id]; });
+    } else {
+      var b = map.getBounds();
+      hs = hs.filter(function(h){ return b.contains([h.lat, h.lng]); });
+    }
+    var pts = hs.filter(function(h){ return h.status === "avoir"; });
+    if (!pts.length) pts = hs.filter(function(h){ return h.status === "absent" || h.status === "repasser"; });
+    return pts;
+  }
+  function computeOrder(pts){
+    var n = pts.length;
+    if (n < 2) return pts.slice();
+    var startIdx = 0;
+    if (mePos){
+      var best = Infinity;
+      pts.forEach(function(p, i){ var d = haversine(mePos, p); if (d < best){ best = d; startIdx = i; } });
+    }
+    var visited = new Array(n).fill(false), order = [startIdx];
+    visited[startIdx] = true;
+    for (var s = 1; s < n; s++){
+      var last = pts[order[order.length-1]], bi = -1, bd = Infinity;
+      for (var i = 0; i < n; i++){
+        if (visited[i]) continue;
+        var d = haversine(last, pts[i]);
+        if (d < bd){ bd = d; bi = i; }
+      }
+      visited[bi] = true; order.push(bi);
+    }
+    if (n <= 600){
+      var D = function(i, j){ return haversine(pts[i], pts[j]); };
+      var twoOpt = function(){
+        var improved = true, passes = 0;
+        while (improved && passes < 10){
+          improved = false; passes++;
+          for (var a = 0; a < n-2; a++){
+            for (var b2 = a+2; b2 < n-1; b2++){
+              if (D(order[a], order[a+1]) + D(order[b2], order[b2+1]) >
+                  D(order[a], order[b2]) + D(order[a+1], order[b2+1]) + 0.01){
+                var seg = order.slice(a+1, b2+1).reverse();
+                for (var k = 0; k < seg.length; k++) order[a+1+k] = seg[k];
+                improved = true;
+              }
+            }
+          }
+        }
+      };
+      var orOpt = function(){
+        var improved = true, passes = 0;
+        while (improved && passes < 5){
+          improved = false; passes++;
+          for (var L2 = 1; L2 <= 3; L2++){
+            for (var i2 = 1; i2 + L2 < n; i2++){
+              var p0 = order[i2-1], p1 = order[i2], p2 = order[i2+L2-1], p3 = order[i2+L2];
+              var removeGain = D(p0,p1) + D(p2,p3) - D(p0,p3);
+              if (removeGain <= 0.01) continue;
+              var bestJ = -1, bestDelta = 0.01;
+              for (var j2 = 0; j2 < n-1; j2++){
+                if (j2 >= i2-1 && j2 <= i2+L2-1) continue;
+                var q0 = order[j2], q1 = order[j2+1];
+                var insCost = D(q0,p1) + D(p2,q1) - D(q0,q1);
+                var delta = removeGain - insCost;
+                if (delta > bestDelta){ bestDelta = delta; bestJ = j2; }
+              }
+              if (bestJ >= 0){
+                var block = order.splice(i2, L2);
+                var insertAt = bestJ < i2 ? bestJ + 1 : bestJ + 1 - L2;
+                for (var k2 = 0; k2 < L2; k2++) order.splice(insertAt + k2, 0, block[k2]);
+                improved = true;
+              }
+            }
+          }
+        }
+      };
+      twoOpt(); orOpt(); twoOpt();
+    }
+    return order.map(function(i){ return pts[i]; });
+  }
+  function drawRoute(){
+    routeLayer.clearLayers();
+    var pts = routePoints();
+    if (pts.length < 2){
+      routeOn = false; routeSelection = null;
+      document.getElementById("btnRoute").classList.remove("on");
+      setHint();
+      toast("Aucun point « À voir » dans la zone — zoome ou change de secteur.");
+      return;
+    }
+    if (pts.length > 800){
+      routeOn = false; routeSelection = null;
+      document.getElementById("btnRoute").classList.remove("on");
+      setHint();
+      toast("Trop de points (" + pts.length + ") — réduis la zone.");
+      return;
+    }
+    var ordered = computeOrder(pts);
+    var latlngs = ordered.map(function(p){ return [p.lat, p.lng]; });
+    if (mePos && map.getBounds().contains([mePos.lat, mePos.lng])) latlngs.unshift([mePos.lat, mePos.lng]);
+    L.polyline(latlngs, {color:"#2A7FFF", weight:3, opacity:.85, dashArray:"6 6"}).addTo(routeLayer);
+    var total = 0;
+    for (var i = 1; i < latlngs.length; i++){
+      total += haversine({lat:latlngs[i-1][0], lng:latlngs[i-1][1]}, {lat:latlngs[i][0], lng:latlngs[i][1]});
+    }
+    var step = Math.max(1, Math.round(ordered.length / 60));
+    ordered.forEach(function(p, i){
+      if (i % step !== 0 && i !== ordered.length - 1) return;
+      L.marker([p.lat, p.lng], {
+        icon: L.divIcon({className:"", html:"<div class='seq'>" + (i+1) + "</div>", iconSize:[20,20], iconAnchor:[10, 24]}),
+        interactive:false
+      }).addTo(routeLayer);
+    });
+    var km = (total/1000).toFixed(1).replace(".", ",");
+    setHint("Trajet : " + ordered.length + " arrêts · ~" + km + " km" + (routeSelection ? " (zone lasso)" : " (points visibles)") + ".");
+  }
+  document.getElementById("btnRoute").addEventListener("click", function(){
+    routeOn = !routeOn;
+    if (!routeOn) routeSelection = null;
+    this.classList.toggle("on", routeOn);
+    if (!routeOn){ routeLayer.clearLayers(); setHint(); }
+    else drawRoute();
+  });
+
+  // ---------- Lasso ----------
+  var lassoPts = [], lassoLine = null, drawing = false;
+  var mapEl = document.getElementById("map");
+  function setLasso(on){
+    lassoMode = on;
+    document.getElementById("btnLasso").classList.toggle("on", on);
+    if (on){
+      map.dragging.disable();
+      mapEl.style.touchAction = "none";
+      setHint("◌ Dessine une zone au doigt autour des maisons…");
+    } else {
+      map.dragging.enable();
+      mapEl.style.touchAction = "";
+      lassoLayer.clearLayers(); lassoLine = null; lassoPts = []; drawing = false;
+      setHint();
+    }
+  }
+  document.getElementById("btnLasso").addEventListener("click", function(){ setLasso(!lassoMode); });
+  function evLatLng(e){
+    var rect = mapEl.getBoundingClientRect();
+    return map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top]);
+  }
+  mapEl.addEventListener("pointerdown", function(e){
+    if (!lassoMode) return;
+    e.preventDefault();
+    drawing = true; lassoPts = [evLatLng(e)];
+    lassoLayer.clearLayers();
+    lassoLine = L.polyline(lassoPts, {color:"#F2A31B", weight:3, dashArray:"4 6"}).addTo(lassoLayer);
+  }, {passive:false});
+  mapEl.addEventListener("pointermove", function(e){
+    if (!lassoMode || !drawing) return;
+    e.preventDefault();
+    lassoPts.push(evLatLng(e));
+    lassoLine.setLatLngs(lassoPts);
+  }, {passive:false});
+  mapEl.addEventListener("pointerup", function(e){
+    if (!lassoMode || !drawing) return;
+    e.preventDefault();
+    drawing = false;
+    if (lassoPts.length < 3){ setLasso(false); return; }
+    L.polygon(lassoPts, {color:"#F2A31B", weight:2, fillOpacity:.08}).addTo(lassoLayer);
+    lassoSel = cityHouses().filter(function(h){ return inPoly(h, lassoPts); }).map(function(h){ return h.id; });
+    map.dragging.enable(); mapEl.style.touchAction = ""; lassoMode = false;
+    document.getElementById("btnLasso").classList.remove("on");
+    if (!lassoSel.length){
+      lassoLayer.clearLayers(); setHint();
+      toast("Aucune maison dans la zone dessinée.");
+      return;
+    }
+    openLassoPanel();
+  }, {passive:false});
+  function inPoly(pt, poly){
+    var x = pt.lng, y = pt.lat, inside = false;
+    for (var i = 0, j = poly.length - 1; i < poly.length; j = i++){
+      var xi = poly[i].lng, yi = poly[i].lat, xj = poly[j].lng, yj = poly[j].lat;
+      var inter = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+      if (inter) inside = !inside;
+    }
+    return inside;
+  }
+  function openLassoPanel(){
+    document.getElementById("lassoCount").textContent = lassoSel.length;
+    var s = document.getElementById("lassoStamps"); s.innerHTML = "";
+    ORDER.forEach(function(k){
+      var b = document.createElement("button");
+      b.className = "stamp";
+      b.innerHTML = "<span class='dot' style='background:" + STATUSES[k].color + "'></span>" + STATUSES[k].label;
+      b.addEventListener("click", function(){
+        var set = {}; lassoSel.forEach(function(id){ set[id] = 1; });
+        var n = 0;
+        data.houses.forEach(function(h){ if (set[h.id] && h.status !== k){ h.status = k; h.statusTs = Date.now(); n++; } });
+        save(); renderAll(); closeLassoPanel();
+        toast(n + " maisons passées en « " + STATUSES[k].label + " ».");
+      });
+      s.appendChild(b);
+    });
+    resetArm(document.getElementById("btnLassoDelete"), "🗑 Supprimer ces points");
+    resetArm(document.getElementById("btnLassoKeep"), "✂ Garder seulement cette zone (supprime le reste de la ville)");
+    document.getElementById("lassoPanel").style.display = "flex";
+  }
+  function closeLassoPanel(){
+    document.getElementById("lassoPanel").style.display = "none";
+    lassoLayer.clearLayers(); lassoSel = []; setHint();
+  }
+  document.getElementById("btnCloseLasso").addEventListener("click", closeLassoPanel);
+  function resetArm(btn, label){ delete btn.dataset.arm; btn.textContent = label; }
+  function armThen(btn, confirmLabel, label, fn){
+    if (btn.dataset.arm){ resetArm(btn, label); fn(); return; }
+    btn.dataset.arm = "1"; btn.textContent = confirmLabel;
+    setTimeout(function(){ resetArm(btn, label); }, 3500);
+  }
+  document.getElementById("btnLassoDelete").addEventListener("click", function(){
+    var btn = this;
+    armThen(btn, "🗑 Sûr ? " + lassoSel.length + " points supprimés", "🗑 Supprimer ces points", function(){
+      var set = {}; lassoSel.forEach(function(id){ set[id] = 1; });
+      var before = data.houses.length;
+      data.houses = data.houses.filter(function(h){ return !set[h.id]; });
+      save(); renderAll(); closeLassoPanel();
+      toast((before - data.houses.length) + " points supprimés.");
+    });
+  });
+  document.getElementById("btnLassoKeep").addEventListener("click", function(){
+    var btn = this;
+    armThen(btn, "✂ Sûr ? Tout le reste de la ville sera supprimé", "✂ Garder seulement cette zone (supprime le reste de la ville)", function(){
+      var set = {}; lassoSel.forEach(function(id){ set[id] = 1; });
+      var cid = data.activeCityId, before = data.houses.length;
+      data.houses = data.houses.filter(function(h){ return h.cityId !== cid || set[h.id]; });
+      save(); renderAll(); closeLassoPanel();
+      toast((before - data.houses.length) + " points hors zone supprimés.");
+    });
+  });
+  document.getElementById("btnLassoRoute").addEventListener("click", function(){
+    routeSelection = lassoSel.slice();
+    routeOn = true;
+    document.getElementById("btnRoute").classList.add("on");
+    document.getElementById("lassoPanel").style.display = "none";
+    lassoLayer.clearLayers();
+    drawRoute();
+  });
+
+  // ---------- Liste de repasse ----------
+  var listShow = { rappel:true, repasser:true, absent:true, signe:false, notes:false };
+  document.getElementById("listBtn").addEventListener("click", function(){
+    renderList();
+    document.getElementById("listPanel").style.display = "flex";
+  });
+  document.getElementById("btnCloseList").addEventListener("click", function(){
+    document.getElementById("listPanel").style.display = "none";
+  });
+  function renderList(){
+    var c = activeCity();
+    document.getElementById("listCity").textContent = c ? c.name : "";
+    var chips = document.getElementById("listChips"); chips.innerHTML = "";
+    var defs = [
+      {k:"rappel", label:"Rappel", color:STATUSES.rappel.color},
+      {k:"repasser", label:"À repasser", color:STATUSES.repasser.color},
+      {k:"absent", label:"Absent", color:STATUSES.absent.color},
+      {k:"signe", label:"Signé", color:STATUSES.signe.color},
+      {k:"notes", label:"📝 Avec note", color:"#C0C0C0"}
+    ];
+    defs.forEach(function(d){
+      var b = document.createElement("button");
+      b.className = "chip" + (listShow[d.k] ? " active" : "");
+      b.innerHTML = "<span class='dot' style='background:" + d.color + "'></span>" + d.label;
+      b.addEventListener("click", function(){ listShow[d.k] = !listShow[d.k]; renderList(); });
+      chips.appendChild(b);
+    });
+    var rows = document.getElementById("listRows"); rows.innerHTML = "";
+    var hs = cityHouses().filter(function(h){
+      if (listShow[h.status]) return true;
+      if (listShow.notes && h.note) return true;
+      return false;
+    });
+    var rank = {rappel:0, repasser:1, absent:2, signe:3, refus:4, avoir:5};
+    hs.sort(function(a, b){ return (rank[a.status]||9) - (rank[b.status]||9) || (b.ts||0) - (a.ts||0); });
+    if (!hs.length){
+      rows.innerHTML = "<div class='note'>Rien à afficher avec ces filtres.</div>";
+      return;
+    }
+    hs.slice(0, 300).forEach(function(h){
+      var r = document.createElement("div"); r.className = "listRow";
+      var d = document.createElement("span"); d.className = "dot";
+      d.style.background = (STATUSES[h.status]||STATUSES.avoir).color;
+      if (h.op && OPS[h.op]) d.style.borderColor = OPS[h.op].color;
+      var t = document.createElement("div"); t.className = "txt";
+      var l1 = document.createElement("div"); l1.className = "l1"; l1.textContent = labelOf(h);
+      var l2 = document.createElement("div"); l2.className = "l2";
+      l2.textContent = (STATUSES[h.status]||STATUSES.avoir).label + (h.statusTs ? " · " + fmtTs(h.statusTs) : "") + (h.note ? " — " + h.note : "");
+      t.appendChild(l1); t.appendChild(l2);
+      r.appendChild(d); r.appendChild(t);
+      if (h.op && OPS[h.op]){
+        var o = document.createElement("span"); o.className = "op";
+        o.style.background = OPS[h.op].color; o.textContent = OPS[h.op].label;
+        r.appendChild(o);
+      }
+      r.addEventListener("click", function(){
+        document.getElementById("listPanel").style.display = "none";
+        if (filter && filter !== h.status){ filter = null; renderAll(); }
+        map.setView([h.lat, h.lng], 18);
+        var m = markersById[h.id];
+        if (m) m.bindPopup(buildPopup(h), {closeButton:false}).openPopup();
+      });
+      rows.appendChild(r);
+    });
+    if (hs.length > 300){
+      var more = document.createElement("div"); more.className = "note";
+      more.textContent = "… et " + (hs.length - 300) + " de plus (affine les filtres).";
+      rows.appendChild(more);
+    }
+  }
+
+  // ---------- Chargement des maisons (Overpass) ----------
+  var OVERPASS = [
+    "https://overpass.kumi.systems/api/interpreter",
+    "https://overpass.private.coffee/api/interpreter",
+    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+    "https://overpass-api.de/api/interpreter"
+  ];
+  function fetchTimeout(url, opts, ms){
+    var ctrl = ("AbortController" in window) ? new AbortController() : null;
+    if (ctrl) opts.signal = ctrl.signal;
+    var timer = ctrl ? setTimeout(function(){ ctrl.abort(); }, ms) : null;
+    return fetch(url, opts).finally(function(){ if (timer) clearTimeout(timer); });
+  }
+  async function seedHouses(){
+    var c = activeCity();
+    if (!c){ toast("Crée d'abord une ville."); return; }
+    var btn = document.getElementById("btnSeed");
+    var prog = document.getElementById("seedProg");
+    var bar = document.getElementById("seedProgBar");
+    btn.disabled = true; prog.style.display = "block"; bar.style.width = "2%";
+    var q = '[out:json][timeout:25];' +
+      'is_in(' + c.lat + ',' + c.lng + ')->.a;' +
+      'area.a["boundary"="administrative"][admin_level="8"]->.commune;' +
+      'way["building"~"^(house|residential|detached|semidetached_house|terrace|apartments|bungalow|farm|yes)$"](area.commune);' +
+      'out center;';
+    var elements = null, gotHttpAnswer = false;
+    var N = OVERPASS.length, t0 = Date.now(), curServer = 0, stageStart = Date.now();
+    var tick = setInterval(function(){
+      var secTot = Math.round((Date.now() - t0)/1000);
+      btn.textContent = "⏳ Serveur " + (curServer+1) + "/" + N + " — " + secTot + " s";
+      var frac = (curServer + Math.min((Date.now() - stageStart)/20000, 1)) / N;
+      bar.style.width = Math.max(2, Math.round(frac*100)) + "%";
+    }, 400);
+    for (var e = 0; e < N && !elements; e++){
+      curServer = e; stageStart = Date.now();
+      var attempts = [
+        {url: OVERPASS[e], opts: {method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded"}, body:"data=" + encodeURIComponent(q)}},
+        {url: OVERPASS[e] + "?data=" + encodeURIComponent(q), opts: {method:"GET"}}
+      ];
+      for (var t = 0; t < attempts.length && !elements; t++){
+        try{
+          var resp = await fetchTimeout(attempts[t].url, attempts[t].opts, 20000);
+          gotHttpAnswer = true;
+          if (!resp.ok) break;
+          var json = await resp.json();
+          elements = json.elements || [];
+        }catch(err){ /* réseau coupé : GET puis serveur suivant */ }
+      }
+    }
+    clearInterval(tick);
+    btn.disabled = false; btn.textContent = "🏠 Charger toutes les maisons (OpenStreetMap)";
+    prog.style.display = "none"; bar.style.width = "0%";
+    if (!elements){
+      if (!gotHttpAnswer) openPlanB();
+      else toast("Les 4 serveurs OpenStreetMap refusent ou saturent (souvent temporaire). Le Plan B marche à tous les coups.", "Plan B", openPlanB);
+      return;
+    }
+    var pts = elements.map(function(el){
+      var tags = el.tags || {};
+      var addr = null;
+      if (tags["addr:housenumber"] && tags["addr:street"]) addr = tags["addr:housenumber"] + " " + tags["addr:street"];
+      else if (tags["addr:street"]) addr = tags["addr:street"];
+      return { lat: el.center ? el.center.lat : el.lat,
+               lng: el.center ? el.center.lon : el.lon,
+               osm: el.type + "/" + el.id,
+               addr: addr };
+    }).filter(function(p){ return p.lat != null && p.lng != null; });
+    finishSeed(c, pts);
+  }
+  document.getElementById("btnSeed").addEventListener("click", seedHouses);
+
+  var clearArm = false;
+  document.getElementById("btnClearAvoir").addEventListener("click", function(){
+    var c = activeCity(); if (!c){ toast("Crée d'abord une ville."); return; }
+    var btn = this;
+    if (!clearArm){
+      clearArm = true;
+      btn.textContent = "🧹 Sûr ? Ça supprime tous les « À voir » de " + c.name;
+      setTimeout(function(){ clearArm = false; btn.textContent = "🧹 Retirer les « À voir » de la ville"; }, 3500);
+      return;
+    }
+    var before = data.houses.length;
+    data.houses = data.houses.filter(function(h){ return !(h.cityId === c.id && h.status === "avoir"); });
+    clearArm = false; btn.textContent = "🧹 Retirer les « À voir » de la ville";
+    save(); renderAll();
+    toast((before - data.houses.length) + " points « À voir » retirés.");
+  });
+
+  function finishSeed(c, pts){
+    var existing = {};
+    data.houses.forEach(function(h){
+      if (h.cityId !== c.id) return;
+      if (h.osm) existing[h.osm] = true;
+      existing[coordKey(h.lat, h.lng)] = true;
+    });
+    var added = 0, ignored = 0;
+    for (var i = 0; i < pts.length && added < 6000; i++){
+      var p = pts[i];
+      if (haversine(c, p) > 8000){ ignored++; continue; }
+      if ((p.osm && existing[p.osm]) || existing[coordKey(p.lat, p.lng)]) continue;
+      data.houses.push({ id: uid(), cityId: c.id, lat: p.lat, lng: p.lng, status: "avoir",
+                         osm: p.osm || null, addr: p.addr || null, ts: Date.now() });
+      existing[coordKey(p.lat, p.lng)] = true;
+      added++;
+    }
+    save(); renderAll(); closeSheet();
+    if (added){
+      var all = cityHouses();
+      map.fitBounds(L.latLngBounds(all.map(function(h){ return [h.lat, h.lng]; })), {padding:[30,30]});
+      toast(added + " maisons chargées en « À voir »" + (ignored ? " (" + ignored + " points hors commune ignorés)" : "") + " — à toi de colorier ! 🎨");
+    } else {
+      toast("Aucune nouvelle maison (déjà chargées, ou zone vide).");
+    }
+  }
+
+  // ---------- Adresses « Free passe seul » (Arcep) ----------
+  // Les fichiers viennent de build_points.py : un GeoJSON par commune, avec
+  // pour chaque immeuble les operateurs qui n'y commercialisent pas la fibre.
+  async function inseeDeLaVille(c){
+    if (c.insee) return c.insee;
+    try{
+      var r = await fetchTimeout("https://geo.api.gouv.fr/communes?lat=" + c.lat +
+        "&lon=" + c.lng + "&fields=code&limit=1", {}, 12000);
+      var a = await r.json();
+      if (a && a[0] && a[0].code){ c.insee = a[0].code; save(); return c.insee; }
+    }catch(e){}
+    return null;
+  }
+
+  // Le fichier compact d'une commune -> la meme forme que geoJsonToPoints.
+  function arcepVersPoints(fic){
+    var voies = fic.voies || [];
+    // Plusieurs immeubles peuvent partager exactement le meme point (un batiment
+    // decoupe en plusieurs entrees) : on numerote les doublons pour que chacun
+    // garde une identite propre d'un chargement a l'autre.
+    var vus = {};
+    return (fic.b || []).map(function(x){
+      var voie = x[2] >= 0 ? voies[x[2]] : "";
+      var addr = voie ? ((x[3] ? x[3] + " " : "") + voie) : null;
+      var cle = x[0].toFixed(6) + "/" + x[1].toFixed(6);
+      vus[cle] = (vus[cle] || 0) + 1;
+      var id = "arcep/" + fic.insee + "/" + cle + (vus[cle] > 1 ? "/" + vus[cle] : "");
+      return { lat: x[0], lng: x[1], addr: addr, ops: x[5],
+               logements: x[4] > 1 ? x[4] : null, osm: id };
+    });
+  }
+
+  // Pose une liste de points Arcep sur la ville c, et rend le compte-rendu.
+  // Chaque point Arcep est un immeuble distinct : on ne les fusionne jamais
+  // entre eux. En revanche on les rattache aux maisons deja posees, car un
+  // batiment OpenStreetMap et un immeuble Arcep ne tombent pas au meme point.
+  // Une maison deja appariee sort de l'index, sinon deux immeubles voisins
+  // viendraient se coller sur la meme.
+  function poserPoints(c, pts){
+    var cell = 0.0003, grille = {}, parId = {};
+    cityHouses().forEach(function(h){
+      if (h.osm) parId[h.osm] = h;
+      var k = Math.round(h.lat/cell) + "," + Math.round(h.lng/cell);
+      (grille[k] = grille[k] || []).push(h);
+    });
+    function retirer(h){
+      var k = Math.round(h.lat/cell) + "," + Math.round(h.lng/cell);
+      var l = grille[k] || [], i = l.indexOf(h);
+      if (i >= 0) l.splice(i, 1);
+    }
+
+    var ajout = 0, enrichi = 0, deja = 0;
+    pts.forEach(function(p){
+      var connu = p.osm ? parId[p.osm] : null;
+      if (connu){                                   // deja importe une fois
+        connu.ops = p.ops;
+        if (p.logements) connu.logements = p.logements;
+        deja++;
+        return;
+      }
+      var ci = Math.round(p.lat/cell), cj = Math.round(p.lng/cell), proche = null, dmin = 25;
+      for (var di = -1; di <= 1; di++) for (var dj = -1; dj <= 1; dj++){
+        (grille[(ci+di) + "," + (cj+dj)] || []).forEach(function(h){
+          var d = haversine(h, p);
+          if (d < dmin){ dmin = d; proche = h; }
+        });
+      }
+      if (proche){
+        proche.ops = p.ops;
+        if (p.logements) proche.logements = p.logements;
+        if (!proche.addr && p.addr) proche.addr = p.addr;
+        if (!proche.osm && p.osm){ proche.osm = p.osm; parId[p.osm] = proche; }
+        retirer(proche);
+        enrichi++;
+      } else {
+        var h = { id: uid(), cityId: c.id, lat: p.lat, lng: p.lng, status: "avoir",
+                  osm: p.osm || null, addr: p.addr || null, ops: p.ops,
+                  ts: Date.now() };
+        if (p.logements) h.logements = p.logements;
+        data.houses.push(h);
+        if (p.osm) parId[p.osm] = h;
+        ajout++;
+      }
+    });
+    save(); renderAll(); closeSheet();
+    var occasions = pts.filter(function(p){ return (p.ops & 1) && (p.ops & 14) !== 14; }).length;
+    var sansFibre = pts.filter(function(p){ return !p.ops; }).length;
+    toast(pts.length + " maisons : " + ajout + " ajoutées, " + enrichi + " marquées" +
+          (deja ? ", " + deja + " à jour" : "") + " — dont ⚡ " + occasions +
+          " où Free devance et " + sansFibre + " sans fibre.");
+  }
+
+  document.getElementById("btnArcep").addEventListener("click", async function(){
+    var c = activeCity();
+    if (!c){ closeSheet(); toast("Crée d'abord une ville."); return; }
+    var btn = this, libelle = btn.textContent;
+    btn.disabled = true; btn.textContent = "⏳ Chargement…";
+
+    var insee = await inseeDeLaVille(c);
+    var fic = null, coupe = false;
+    if (insee){
+      try{
+        var r = await fetchTimeout("points/" + insee + ".json", {}, 25000);
+        if (r.ok) fic = await r.json();
+      }catch(e){ coupe = true; }
+    }
+    btn.disabled = false; btn.textContent = libelle;
+
+    // Les messages d'echec doivent sortir de la feuille, sinon l'appui parait
+    // sans effet.
+    if (!insee){
+      closeSheet();
+      toast("Commune non identifiée — recrée-la via « 🔎 Chercher ».");
+      return;
+    }
+    if (coupe){
+      closeSheet();
+      toast("Page ouverte en local : le navigateur refuse de lire points/" +
+            insee + ".json. Mets le site en ligne, ou importe le fichier.",
+            "Importer", function(){ document.getElementById("fileInput").click(); });
+      return;
+    }
+    if (!fic){
+      closeSheet();
+      toast(c.name + " n'est pas dans les données Arcep — utilise le chargement OpenStreetMap.");
+      return;
+    }
+    poserPoints(c, arcepVersPoints(fic));
+  });
+
+  // ---------- Plan B : overpass-turbo ----------
+  function turboQuery(){
+    var c = activeCity();
+    return '[out:json][timeout:60];\n' +
+      'is_in(' + c.lat + ',' + c.lng + ')->.a;\n' +
+      'area.a["boundary"="administrative"][admin_level="8"]->.commune;\n' +
+      'way["building"](area.commune);\n' +
+      'out center;';
+  }
+  function openPlanB(){
+    closeSheet();
+    document.getElementById("planBPanel").style.display = "flex";
+  }
+  document.getElementById("btnTurbo").addEventListener("click", function(){
+    if (!activeCity()){ toast("Crée d'abord une ville."); return; }
+    window.open("https://overpass-turbo.eu/?R&Q=" + encodeURIComponent(turboQuery()), "_blank");
+  });
+  document.getElementById("btnPlanBImport").addEventListener("click", function(){
+    document.getElementById("fileInput").click();
+  });
+  document.getElementById("btnClosePlanB").addEventListener("click", function(){
+    document.getElementById("planBPanel").style.display = "none";
+  });
+
+  // ---------- GeoJSON → maisons ----------
+  function centroidOfRing(ring){
+    var sLat = 0, sLng = 0, n = 0;
+    for (var i = 0; i < ring.length; i++){
+      var pt = ring[i];
+      if (!pt || pt.length < 2) continue;
+      sLng += pt[0]; sLat += pt[1]; n++;
+    }
+    return n ? {lat: sLat/n, lng: sLng/n} : null;
+  }
+  function geoJsonToPoints(fc){
+    var out = [];
+    (fc.features || []).forEach(function(f){
+      var g = f.geometry; if (!g) return;
+      var p = null;
+      if (g.type === "Point") p = {lat: g.coordinates[1], lng: g.coordinates[0]};
+      else if (g.type === "Polygon" && g.coordinates[0]) p = centroidOfRing(g.coordinates[0]);
+      else if (g.type === "MultiPolygon" && g.coordinates[0] && g.coordinates[0][0]) p = centroidOfRing(g.coordinates[0][0]);
+      else if (g.type === "LineString") p = centroidOfRing(g.coordinates);
+      if (!p || typeof p.lat !== "number" || typeof p.lng !== "number") return;
+      var props = f.properties || {};
+      p.osm = props["@id"] || props.id || f.id || null;
+      if (props["addr:housenumber"] && props["addr:street"]) p.addr = props["addr:housenumber"] + " " + props["addr:street"];
+      else if (props["addr:street"]) p.addr = props["addr:street"];
+      if (props.logements) p.logements = props.logements;
+      out.push(p);
+    });
+    return out;
+  }
+
+  // ---------- Fusion de sauvegardes (import additif) ----------
+  function mergeData(inc){
+    var cityMap = {}, addedC = 0;
+    (inc.cities || []).forEach(function(ic){
+      if (ic.lat == null || ic.lng == null) return;
+      var match = data.cities.find(function(c){
+        return String(c.name||"").trim().toLowerCase() === String(ic.name||"").trim().toLowerCase() ||
+               haversine(c, ic) < 3000;
+      });
+      if (match){ cityMap[ic.id] = match.id; }
+      else {
+        var nc = { id: uid(), name: ic.name || "Ville", lat: ic.lat, lng: ic.lng, zoom: ic.zoom || 15 };
+        data.cities.push(nc); cityMap[ic.id] = nc.id; addedC++;
+      }
+    });
+    var idx = {};
+    data.houses.forEach(function(h){
+      if (h.osm) idx[h.cityId + "|" + h.osm] = h;
+      idx[h.cityId + "|" + coordKey(h.lat, h.lng)] = h;
+    });
+    var addedH = 0, updated = 0;
+    (inc.houses || []).forEach(function(ih){
+      if (ih.lat == null || ih.lng == null) return;
+      var cid = cityMap[ih.cityId];
+      if (!cid) return;
+      var ex = (ih.osm && idx[cid + "|" + ih.osm]) || idx[cid + "|" + coordKey(ih.lat, ih.lng)];
+      if (!ex){
+        var nh = { id: uid(), cityId: cid, lat: ih.lat, lng: ih.lng,
+                   status: ih.status || "avoir", op: ih.op || null, note: ih.note || null,
+                   osm: ih.osm || null, addr: ih.addr || null,
+                   ts: ih.ts || Date.now(), statusTs: ih.statusTs || null };
+        data.houses.push(nh);
+        if (nh.osm) idx[cid + "|" + nh.osm] = nh;
+        idx[cid + "|" + coordKey(nh.lat, nh.lng)] = nh;
+        addedH++;
+      } else {
+        var exT = ex.statusTs || ex.ts || 0, inT = ih.statusTs || ih.ts || 0;
+        var exInfo = ex.status && ex.status !== "avoir";
+        var inInfo = ih.status && ih.status !== "avoir";
+        var changed = false;
+        if (inInfo && (!exInfo || inT > exT)){
+          if (ex.status !== ih.status){ ex.status = ih.status; changed = true; }
+          ex.statusTs = ih.statusTs || ih.ts || ex.statusTs;
+        }
+        if (!ex.op && ih.op){ ex.op = ih.op; changed = true; }
+        if (!ex.note && ih.note){ ex.note = ih.note; changed = true; }
+        if (!ex.addr && ih.addr){ ex.addr = ih.addr; }
+        if (changed) updated++;
+      }
+    });
+    return { addedC: addedC, addedH: addedH, updated: updated };
+  }
+
+  // ---------- Exports ----------
+  function downloadFile(name, content, mime){
+    try{
+      var blob = new Blob([content], {type: mime});
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
+      return true;
+    }catch(e){
+      document.getElementById("exportTa").value = content;
+      document.getElementById("exportPanel").style.display = "flex";
+      return false;
+    }
+  }
+  function dateStamp(){
+    var d = new Date();
+    return d.getFullYear() + ("0"+(d.getMonth()+1)).slice(-2) + ("0"+d.getDate()).slice(-2);
+  }
+  document.getElementById("btnExport").addEventListener("click", function(){
+    document.getElementById("exportChoicePanel").style.display = "flex";
+  });
+  document.getElementById("btnCloseExportChoice").addEventListener("click", function(){
+    document.getElementById("exportChoicePanel").style.display = "none";
+  });
+  function doExportJson(){
+    if (downloadFile("mohabanger2ouf-" + dateStamp() + ".json", JSON.stringify(data), "application/json"))
+      toast("Sauvegarde exportée — garde-la précieusement.");
+    try{ stSet("mb2o-backup-next", String(Date.now() + 7*24*3600*1000)); }catch(e){}
+  }
+  document.getElementById("btnExportJson").addEventListener("click", function(){
+    document.getElementById("exportChoicePanel").style.display = "none";
+    doExportJson();
+  });
+  document.getElementById("btnExportTxt").addEventListener("click", function(){
+    document.getElementById("exportChoicePanel").style.display = "none";
+    var c = activeCity();
+    if (!c){ toast("Aucune ville active."); return; }
+    var d = new Date();
+    var lines = ["MOHABANGER2OUF — " + c.name, "Export du " + d.toLocaleDateString("fr-FR"), ""];
+    var hs = cityHouses();
+    ORDER.forEach(function(k){
+      if (k === "avoir") return;
+      var pts = hs.filter(function(h){ return h.status === k; });
+      if (!pts.length) return;
+      lines.push("== " + STATUSES[k].label.toUpperCase() + " (" + pts.length + ") ==");
+      pts.forEach(function(h){
+        var l = "• " + labelOf(h);
+        if (h.op && OPS[h.op]) l += " — " + OPS[h.op].label;
+        if (h.statusTs) l += " — " + fmtTs(h.statusTs, true);
+        if (h.note) l += " — « " + h.note + " »";
+        lines.push(l);
+      });
+      lines.push("");
+    });
+    var noted = hs.filter(function(h){ return h.status === "avoir" && h.note; });
+    if (noted.length){
+      lines.push("== À VOIR avec note (" + noted.length + ") ==");
+      noted.forEach(function(h){
+        lines.push("• " + labelOf(h) + (h.op && OPS[h.op] ? " — " + OPS[h.op].label : "") + (h.statusTs ? " — " + fmtTs(h.statusTs, true) : "") + " — « " + h.note + " »");
+      });
+      lines.push("");
+    }
+    if (lines.length <= 3){ toast("Rien à exporter pour l'instant (aucun point colorié ou annoté)."); return; }
+    if (downloadFile("mohabanger2ouf-notes-" + dateStamp() + ".txt", lines.join("\n"), "text/plain;charset=utf-8"))
+      toast("Notes exportées en .txt.");
+  });
+  document.getElementById("btnSelectAll").addEventListener("click", function(){
+    var ta = document.getElementById("exportTa"); ta.focus(); ta.select();
+  });
+  document.getElementById("btnCloseExport").addEventListener("click", function(){
+    document.getElementById("exportPanel").style.display = "none";
+  });
+
+  document.getElementById("btnImport").addEventListener("click", function(){
+    document.getElementById("fileInput").click();
+  });
+  document.getElementById("fileInput").addEventListener("change", function(){
+    var f = this.files && this.files[0];
+    if (!f) return;
+    var reader = new FileReader();
+    reader.onload = function(){
+      try{
+        var parsed = JSON.parse(reader.result);
+        // Fichier de commune Arcep (points/<insee>.json), le repli quand la
+        // page est ouverte en local et ne peut pas lire ses propres fichiers.
+        if (parsed && parsed.v === 1 && Array.isArray(parsed.b)){
+          var ca = activeCity();
+          if (!ca){ closeSheet(); toast("Crée d'abord une ville, puis réimporte le fichier."); return; }
+          poserPoints(ca, arcepVersPoints(parsed));
+          return;
+        }
+        if (parsed && parsed.type === "FeatureCollection"){
+          var c = activeCity();
+          if (!c){ toast("Crée d'abord une ville, puis réimporte le GeoJSON."); return; }
+          var pts = geoJsonToPoints(parsed);
+          if (!pts.length){ toast("Aucun point trouvé dans ce GeoJSON."); return; }
+          document.getElementById("planBPanel").style.display = "none";
+          finishSeed(c, pts);
+          return;
+        }
+        if (!parsed || !Array.isArray(parsed.cities) || !Array.isArray(parsed.houses)) throw new Error("format");
+        var res = mergeData(parsed);
+        if (!activeCity() && data.cities.length) data.activeCityId = data.cities[0].id;
+        save(); renderAll(); closeSheet();
+        var c2 = activeCity();
+        if (c2) map.setView([c2.lat, c2.lng], c2.zoom || 15);
+        toast("Fusion : +" + res.addedH + " points, " + res.updated + " mis à jour, +" + res.addedC + " ville(s).");
+      }catch(e){
+        closeSheet();
+        toast("Fichier illisible — sauvegarde de l'appli, fichier de commune Arcep ou GeoJSON attendu.");
+      }
+    };
+    reader.readAsText(f);
+    this.value = "";
+  });
+
+  // ---------- Villes ----------
+  var sheet = document.getElementById("cityPanel");
+  function openSheet(){ renderCityList(); sheet.style.display = "flex"; }
+  function closeSheet(){ sheet.style.display = "none"; }
+  document.getElementById("cityBtn").addEventListener("click", openSheet);
+  document.getElementById("btnCloseSheet").addEventListener("click", closeSheet);
+  sheet.addEventListener("click", function(e){ if (e.target === sheet) closeSheet(); });
+
+  // Lien vers la carte fibre, pointe sur la ville active
+  function majLienFibre(){
+    var a = document.getElementById("linkFibre"), c = activeCity();
+    a.href = c ? "fibre.html#q=" + encodeURIComponent(c.name) : "fibre.html";
+    a.textContent = c ? "🗺️ Fibre à " + c.name + " — quel opérateur passe ?"
+                      : "🗺️ Ouvrir la carte fibre";
+  }
+
+  function renderCityList(){
+    majLienFibre();
+    var box = document.getElementById("cityList"); box.innerHTML = "";
+    if (!data.cities.length){
+      box.innerHTML = "<div style='color:var(--muted);font-size:13px;padding:8px 0'>Aucune ville — ajoute ta première commune ci-dessous.</div>";
+      return;
+    }
+    data.cities.forEach(function(c){
+      var n = 0;
+      for (var i = 0; i < data.houses.length; i++) if (data.houses[i].cityId === c.id) n++;
+      var row = document.createElement("div");
+      row.className = "cityRow" + (c.id === data.activeCityId ? " active" : "");
+      var name = document.createElement("div"); name.className = "name"; name.textContent = c.name;
+      var meta = document.createElement("div"); meta.className = "meta"; meta.textContent = n + " pts";
+      var x = document.createElement("button"); x.className = "x"; x.textContent = "Suppr.";
+      x.addEventListener("click", function(ev){
+        ev.stopPropagation();
+        if (x.dataset.arm){
+          data.houses = data.houses.filter(function(h){ return h.cityId !== c.id; });
+          data.cities = data.cities.filter(function(v){ return v.id !== c.id; });
+          if (data.activeCityId === c.id) data.activeCityId = data.cities.length ? data.cities[0].id : null;
+          save(); renderAll(); renderCityList();
+        } else {
+          x.dataset.arm = "1"; x.textContent = "Sûr ?"; x.style.color = "#E33A2E"; x.style.borderColor = "#E33A2E";
+          setTimeout(function(){ delete x.dataset.arm; x.textContent = "Suppr."; x.style.color = ""; x.style.borderColor = ""; }, 3000);
+        }
+      });
+      row.addEventListener("click", function(){
+        data.activeCityId = c.id; filter = null; routeOn = false; routeSelection = null;
+        document.getElementById("btnRoute").classList.remove("on");
+        setHint(); save(); renderAll(); closeSheet();
+        map.setView([c.lat, c.lng], c.zoom || 15);
+      });
+      row.appendChild(name); row.appendChild(meta); row.appendChild(x);
+      box.appendChild(row);
+    });
+  }
+  function addCity(name, lat, lng, zoom, insee){
+    var c = { id: uid(), name: name, lat: lat, lng: lng, zoom: zoom || 15,
+              insee: insee || null };
+    data.cities.push(c); data.activeCityId = c.id;
+    filter = null; routeOn = false; routeSelection = null;
+    document.getElementById("btnRoute").classList.remove("on");
+    setHint(); save(); renderAll(); renderCityList();
+    map.setView([lat, lng], c.zoom);
+    toast(name + " ajoutée — charge ses maisons depuis le menu ville.");
+  }
+  document.getElementById("btnUseView").addEventListener("click", function(){
+    var name = document.getElementById("cityInput").value.trim() || "Ville sans nom";
+    var ctr = map.getCenter();
+    addCity(name, ctr.lat, ctr.lng, map.getZoom());
+    document.getElementById("cityInput").value = "";
+  });
+  // Annuaire officiel des communes francaises : nom exact, centre-bourg, et il
+  // accepte aussi le code postal. Nominatim ne sert plus que de secours.
+  async function geocode(q){
+    var cp = /^\d{5}$/.test(q);
+    var url = "https://geo.api.gouv.fr/communes?" +
+      (cp ? "codePostal=" + q : "nom=" + encodeURIComponent(q) + "&boost=population") +
+      "&fields=nom,code,centre&limit=1";
+    try{
+      var r = await fetchTimeout(url, {}, 12000);
+      var arr = await r.json();
+      if (arr && arr[0] && arr[0].centre){
+        return { name: arr[0].nom, insee: arr[0].code,
+                 lat: arr[0].centre.coordinates[1],
+                 lng: arr[0].centre.coordinates[0] };
+      }
+    }catch(e){}
+    try{
+      var r2 = await fetchTimeout("https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=fr&q=" + encodeURIComponent(q), {}, 12000);
+      var a2 = await r2.json();
+      if (a2 && a2[0]){
+        return { name: (a2[0].display_name || "").split(",")[0] || q,
+                 lat: parseFloat(a2[0].lat), lng: parseFloat(a2[0].lon) };
+      }
+    }catch(e){}
+    return null;
+  }
+
+  document.getElementById("btnSearchCity").addEventListener("click", async function(){
+    var q = document.getElementById("cityInput").value.trim();
+    if (!q){ toast("Écris le nom d'une commune."); return; }
+    var btn = this; btn.textContent = "…"; btn.disabled = true;
+    var hit = await geocode(q);
+    if (hit){
+      addCity(hit.name, hit.lat, hit.lng, 15, hit.insee);
+      document.getElementById("cityInput").value = "";
+    } else {
+      toast("Commune introuvable — navigue sur la carte puis « Utiliser la vue actuelle ».");
+    }
+    btn.textContent = "🔎 Chercher"; btn.disabled = false;
+  });
+  document.getElementById("cityInput").addEventListener("keydown", function(e){
+    if (e.key === "Enter") document.getElementById("btnSearchCity").click();
+  });
+
+  // ---------- Toast ----------
+  var toastTimer = null;
+  function toast(msg, btnLabel, btnAction){
+    var t = document.getElementById("toast");
+    document.getElementById("toastMsg").textContent = msg;
+    var b = document.getElementById("toastBtn");
+    if (btnLabel){
+      b.style.display = "inline"; b.textContent = btnLabel;
+      b.onclick = function(){ if (btnAction) btnAction(); t.style.display = "none"; };
+    } else b.style.display = "none";
+    t.style.display = "flex";
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.style.display = "none"; }, 5500);
+  }
+
+  // ---------- Aide & À propos ----------
+  function openHelp(){ document.getElementById("helpPanel").style.display = "flex"; }
+  document.getElementById("helpBtn").addEventListener("click", openHelp);
+  document.getElementById("btnCloseHelp").addEventListener("click", function(){
+    document.getElementById("helpPanel").style.display = "none";
+  });
+  document.getElementById("aboutBtn").addEventListener("click", function(){
+    document.getElementById("aboutPanel").style.display = "flex";
+  });
+  document.getElementById("btnCloseAbout").addEventListener("click", function(){
+    document.getElementById("aboutPanel").style.display = "none";
+  });
+
+  // ---------- Rappel de sauvegarde ----------
+  function snoozeBackup(){
+    try{ stSet("mb2o-backup-next", String(Date.now() + 7*24*3600*1000)); }catch(e){}
+    document.getElementById("backupPanel").style.display = "none";
+  }
+  document.getElementById("btnBackupLater").addEventListener("click", snoozeBackup);
+  document.getElementById("btnBackupNow").addEventListener("click", function(){
+    doExportJson(); // repousse déjà le rappel d'une semaine
+    document.getElementById("backupPanel").style.display = "none";
+  });
+
+  // ---------- Arrivée depuis la carte fibre ----------
+  // La carte fibre envoie ici #ville=Nom&lat=..&lng=.. : on active la ville si
+  // elle existe deja, sinon on la cree au bon endroit.
+  function villeDepuisUrl(){
+    var h = location.hash.replace(/^#/, "");
+    if (!h) return false;
+    var p = {};
+    h.split("&").forEach(function(kv){
+      var i = kv.indexOf("=");
+      if (i > 0) p[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1).replace(/\+/g, " "));
+    });
+    if (!p.ville) return false;
+    history.replaceState(null, "", location.pathname);   // pas de re-ajout au rechargement
+    var existe = data.cities.find(function(c){
+      return c.name.toLowerCase() === p.ville.toLowerCase();
+    });
+    if (existe){
+      data.activeCityId = existe.id;
+      if (p.insee && !existe.insee) existe.insee = p.insee;
+      filter = null; save(); renderAll();
+      map.setView([existe.lat, existe.lng], existe.zoom || 15);
+      toast(existe.name + " — déjà dans tes villes, elle est activée.");
+      return true;
+    }
+    var lat = parseFloat(p.lat), lng = parseFloat(p.lng);
+    if (isNaN(lat) || isNaN(lng)) return false;
+    addCity(p.ville, lat, lng, 14, p.insee);
+    return true;
+  }
+
+  // ---------- Démarrage ----------
+  renderStamps(); styleStampHere(); setHint();
+  load().then(async function(){
+    var arrivee = villeDepuisUrl();
+    var c = activeCity();
+    if (c && !arrivee) map.setView([c.lat, c.lng], c.zoom || 15);
+    renderAll();
+    if (arrivee) return;                 // on ne noie pas l'arrivant sous les popups
+    var seen = null, visits = 0, next = 0;
+    try{ seen = await stGet("mb2o-help"); }catch(e){}
+    try{ visits = parseInt(await stGet("mb2o-visits"), 10) || 0; }catch(e){}
+    visits++;
+    try{ stSet("mb2o-visits", String(visits)); }catch(e){}
+    try{ next = parseInt(await stGet("mb2o-backup-next"), 10) || 0; }catch(e){}
+    if (!seen){
+      openHelp();
+      try{ stSet("mb2o-help", "1"); }catch(e){}
+    } else if (visits >= 3 && Date.now() >= next && data.houses.length){
+      document.getElementById("backupPanel").style.display = "flex";
+    }
+  });
+})();
+</script>
+</body>
+</html>
