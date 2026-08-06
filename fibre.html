@@ -1451,11 +1451,38 @@ const frais = p => p.ftth > 0 && p.neuf / p.ftth >= NEUF;
 const orangeDouteux = p => p.ftth >= 50 &&
   p.free / p.ftth >= .95 && p.orange / p.ftth < .90;
 
+/* Ancienneté du déploiement. Une commune fraîchement fibrée n'est pas un
+   défaut à cacher : c'est l'argument d'entrée le plus fort. Et tant que le
+   déploiement n'est pas fini, il reste des prises à poser. */
+const enCours = p => p.tot > 0 && p.ftth / p.tot < 0.9;
+const AGES = {
+  tout:  () => true,
+  neuve: p => frais(p),
+  cours: p => enCours(p),
+  posee: p => !frais(p) && !enCours(p),
+};
+
+/* « Début délai complétude » : la date à laquelle l'opérateur d'infrastructure
+   a ouvert la zone arrière d'un point de mutualisation, et à partir de laquelle
+   court son obligation de rendre toute la zone raccordable. */
+const jour = d => d ? d.slice(8, 10) + "/" + d.slice(5, 7) + "/" + d.slice(0, 4) : "";
+
+function completude(p) {
+  if (!p.dd1) return "";
+  const meme = p.dd1 === p.dd2;
+  const bas = [`${p.pm} zone${p.pm > 1 ? "s" : ""} de PM`];
+  if (p.zone) bas.push(p.zone);
+  if (p.oi) bas.push(p.oi);
+  return `<div class="comp"><span>Début délai complétude</span>` +
+    `<b>${meme ? jour(p.dd1) : jour(p.dd1) + " → " + jour(p.dd2)}</b>` +
+    `<span class="pmn">${bas.join(" · ")}</span></div>`;
+}
+
 /* Fin du trimestre couvert par le releve Arcep, et son age en mois. */
+const FINS = { 1: "03-31", 2: "06-30", 3: "09-30", 4: "12-31" };
 function finTrimestre() {
   const m = /(\d{4})\s*T(\d)/.exec(MAJ.arcep || "");
-  if (!m) return null;
-  return `${m[1]}-${{1: "03-31", 2: "06-30", 3: "09-30", 4: "12-31"}[+m[2]]}`;
+  return m ? m[1] + "-" + FINS[+m[2]] : null;
 }
 const MOIS_ARCEP = (() => {
   const f = finTrimestre();
