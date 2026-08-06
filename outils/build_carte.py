@@ -333,6 +333,52 @@ def agreger(chemin):
     return out
 
 
+def recalculer(pj):
+    """Statistiques d'une commune verifiee, sur les masques corriges par les
+    reponses des operateurs eux-memes (bt pour Bouygues, sf pour SFR)."""
+    bt, sf = pj.get("bt") or [], pj.get("sf") or []
+    s = collections.Counter()
+    combi = collections.Counter()
+    for i, b in enumerate(pj.get("b", [])):
+        m = b[5]
+        # On ne corrige que la composition des adresses deja fibrees selon
+        # l'Arcep, jamais leur nombre : n'ayant interroge ni Free ni Orange,
+        # ajouter des batiments vus par le seul Bouygues ferait chuter la part
+        # de Free sans rien prouver. Saint-Cast y perdait 31 points.
+        if m and i < len(bt):
+            if bt[i] == 1:
+                m |= B_BOUY
+            elif bt[i] == 0:
+                m &= ~B_BOUY
+        # SFR ne publie que des emprises de couverture, pas de l'eligibilite a
+        # l'adresse : elles servent a confirmer ou retirer SFR sur un batiment
+        # deja fibre, jamais a en declarer un nouveau. Sans cette reserve,
+        # Saint-Cast passait de 2 484 a 3 860 adresses « fibrees ».
+        if m and i < len(sf):
+            m = m | B_SFR if sf[i] == 1 else m & ~B_SFR
+        if not m:
+            continue
+        combi[m] += 1
+        s["ftth"] += 1
+        if m & B_FREE: s["free"] += 1
+        if m & B_ORAN: s["orange"] += 1
+        if m & B_BOUY: s["bouygues"] += 1
+        if m & B_SFR:  s["sfr"] += 1
+        if m & B_FREE:
+            manquants = (not m & B_SFR) + (not m & B_BOUY) + (not m & B_ORAN)
+            if not m & B_SFR:  s["fns"] += 1
+            if not m & B_BOUY: s["fnb"] += 1
+            if not m & B_ORAN: s["fno"] += 1
+            if manquants:      s["fav"] += 1
+            if manquants == 3: s["fseul"] += 1
+        else:
+            s["sfree"] += 1
+    out = {k: int(v) for k, v in s.items()}
+    out["tot"] = len(pj.get("b", []))
+    out["mk"] = {str(k): int(v) for k, v in combi.items()}
+    return out
+
+
 def compter_ftth(chemin):
     """Nombre d'adresses raccordables FTTH par commune, pour un trimestre."""
     vues = collections.defaultdict(set)
@@ -431,18 +477,23 @@ def main():
             props["mk"] = s.get("mk", {})
             # adresses fibrees apparues depuis la publication precedente
             props["neuf"] = max(0, props["ftth"] - avant.get(code, 0))
-            # La commune a-t-elle ete verifiee directement chez Bouygues ?
+            # Commune verifiee directement chez les operateurs : on recalcule
+            # tous ses chiffres sur les masques corriges, plutot que de laisser
+            # la fiche afficher un « Bouygues < 0,1 % » qu'on sait faux. Le
+            # comptage passe alors de l'adresse a l'immeuble, d'ou de legers
+            # ecarts de total.
             fp = os.path.join(os.path.dirname(HERE), "site-prospection",
                               "points", code + ".json")
             if os.path.exists(fp):
                 try:
                     with open(fp, encoding="utf-8") as f:
                         pj = json.load(f)
-                    if pj.get("btd"):
-                        props["btd"] = pj["btd"]
-                        props["btn"] = sum(1 for x in pj.get("bt", []) if x == 1)
                 except Exception:
-                    pass
+                    pj = {}
+                if pj.get("btd"):
+                    props["btd"] = pj["btd"]
+                    props["btn"] = sum(1 for x in pj.get("bt", []) if x == 1)
+                    props.update(recalculer(pj))
             z = zones.get(code)
             if z:
                 props["pm"] = z["pm"]
