@@ -190,6 +190,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("commune")
     ap.add_argument("--sans-sfr", action="store_true")
+    ap.add_argument("--sfr-seul", action="store_true",
+                    help="ne relever que SFR : un appel, pas de quadrillage Bouygues")
     ap.add_argument("--refresh", action="store_true",
                     help="réinterroger Bouygues au lieu d'utiliser le cache")
     ap.add_argument("--enrichir", action="store_true",
@@ -212,6 +214,20 @@ def main():
     if len(tuiles) > MAX_TUILES:
         sys.exit(f"{len(tuiles)} tuiles nécessaires : trop pour un sondage.")
     # On garde la moisson : regenerer la carte ne doit pas recouter 62 appels.
+    if args.sfr_seul:
+        try:
+            zones = sfr(lats, lons)
+        except Exception as e:
+            sys.exit(f"échec SFR : {e}")
+        d["sf"] = [1 if debit_sfr(zones, b[1], b[0]) >= 1000 else 0 for b in bats]
+        d["sfd"] = time.strftime("%Y-%m-%d")
+        json.dump(d, open(os.path.join(POINTS, f"{insee}.json"), "w", encoding="utf-8"),
+                  ensure_ascii=False, separators=(",", ":"))
+        avant = sum(1 for b in bats if b[5] & 8)
+        apres = sum(1 for i, b in enumerate(bats) if b[5] and d["sf"][i] == 1)
+        log(f"   SFR relevé : {avant} d'après l'Arcep, {apres} sur la carte SFR")
+        return
+
     cache = os.path.join(HERE, f"_bouygues_{insee}.json")
     if os.path.exists(cache) and not args.refresh:
         bt = json.load(open(cache, encoding="utf-8"))

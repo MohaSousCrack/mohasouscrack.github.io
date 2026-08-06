@@ -877,6 +877,14 @@ function completude(p) {
     `<span class="pmn">${bas.join(" · ")}</span></div>`;
 }
 
+/* Quels opérateurs ont été relevés chez eux plutôt que dans le relevé Arcep. */
+function verifies(p) {
+  const l = [];
+  if (p.btd) l.push("Bouygues");
+  if (p.sfd) l.push("SFR");
+  return l;
+}
+
 function fiche(p) {
   const ops = [["Free", p.free], ["Orange", p.orange],
                ["Bouygues", p.bouygues], ["SFR", p.sfr]];
@@ -884,8 +892,9 @@ function fiche(p) {
     const v = p.ftth ? n / p.ftth : 0;
     /* Dire lesquels de ces chiffres viennent de l'opérateur lui-même plutôt
        que du relevé trimestriel : ce sont les seuls qu'on sait à jour. */
-    const vu = p.btd && (nom === "Bouygues" || (p.sfd && nom === "SFR"))
-      ? `<span class="vu" title="Chiffre obtenu chez ${nom} le ${jour(p.btd)}, ` +
+    const dv = nom === "Bouygues" ? p.btd : (nom === "SFR" ? p.sfd : null);
+    const vu = dv
+      ? `<span class="vu" title="Chiffre obtenu chez ${nom} le ${jour(dv)}, ` +
         `pas dans le relevé Arcep">vérifié</span>` : "";
     return `<div class="op"><span class="nm">${nom}${vu}</span>` +
       `<span class="track"><span class="fill${vu ? " ok" : ""}" ` +
@@ -928,8 +937,9 @@ function fiche(p) {
     (reste > 0 ? `Les ${nf.format(reste)} autres ne sont fibrées <b>chez aucun opérateur</b>.`
                : `Toute la commune est raccordable.`) + `</div>` +
     `<h3 class="dsub">Parmi les ${nf.format(p.ftth)} adresses raccordables` +
-    (p.btd ? ` <span class="src">— Bouygues relevé chez lui le ${jour(p.btd)}, ` +
-             `les autres d'après l'Arcep</span>` : "") + `</h3>` +
+    (verifies(p).length ? ` <span class="src">— ${verifies(p).join(" et ")} ` +
+      `relevé${verifies(p).length > 1 ? "s" : ""} chez eux, le reste d'après ` +
+      `l'Arcep</span>` : "") + `</h3>` +
     barres + `<div class="chips">${chips}</div>` + alerteNeuf(p) +
     (gaps.length ? `<div class="note">${gaps.join("<br>")}` +
       (p.fseul ? `<br><b>${nf.format(p.fseul)} adresses où Free est le seul des quatre.</b>` : "") +

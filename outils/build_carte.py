@@ -490,8 +490,9 @@ def main():
                         pj = json.load(f)
                 except Exception:
                     pj = {}
-                if pj.get("btd"):
-                    props["btd"] = pj["btd"]
+                if pj.get("btd") or pj.get("sfd"):
+                    if pj.get("btd"): props["btd"] = pj["btd"]
+                    if pj.get("sfd"): props["sfd"] = pj["sfd"]
                     props["btn"] = sum(1 for x in pj.get("bt", []) if x == 1)
                     props.update(recalculer(pj))
             z = zones.get(code)
