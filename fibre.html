@@ -871,6 +871,12 @@ td .neuf.vert { background: var(--good); color: #fff; }
              overflow: hidden; }
 .op .fill { height: 100%; background: var(--series-1);
             border-radius: 0 4px 4px 0; }
+.op .fill.ok { background: var(--good); }
+.op .vu { margin-left: 5px; padding: 0 4px; border-radius: 3px; font-size: 9.5px;
+          font-weight: 700; text-transform: uppercase; letter-spacing: .03em;
+          background: var(--good); color: #fff; vertical-align: 1px; }
+.dsub .src { text-transform: none; letter-spacing: 0; font-weight: 400;
+             color: var(--muted); }
 .op .pc { font-size: 12px; text-align: right; font-variant-numeric: tabular-nums;
           color: var(--ink); }
 .cadre { font-size: 12px; color: var(--ink-2); background: var(--plane);
@@ -1542,8 +1548,14 @@ function fiche(p) {
                ["Bouygues", p.bouygues], ["SFR", p.sfr]];
   const barres = ops.map(([nom, n]) => {
     const v = p.ftth ? n / p.ftth : 0;
-    return `<div class="op"><span class="nm">${nom}</span>` +
-      `<span class="track"><span class="fill" style="width:${(v*100).toFixed(1)}%"></span></span>` +
+    /* Dire lesquels de ces chiffres viennent de l'opérateur lui-même plutôt
+       que du relevé trimestriel : ce sont les seuls qu'on sait à jour. */
+    const vu = p.btd && (nom === "Bouygues" || (p.sfd && nom === "SFR"))
+      ? `<span class="vu" title="Chiffre obtenu chez ${nom} le ${jour(p.btd)}, ` +
+        `pas dans le relevé Arcep">vérifié</span>` : "";
+    return `<div class="op"><span class="nm">${nom}${vu}</span>` +
+      `<span class="track"><span class="fill${vu ? " ok" : ""}" ` +
+      `style="width:${(v*100).toFixed(1)}%"></span></span>` +
       `<span class="pc">${pf(v)}</span></div>`;
   }).join("");
   const chips = ops.map(([nom, n]) => {
@@ -1581,7 +1593,9 @@ function fiche(p) {
     `<div class="cadre">${nf.format(p.ftth)} adresses raccordables sur ${nf.format(p.tot)}. ` +
     (reste > 0 ? `Les ${nf.format(reste)} autres ne sont fibrées <b>chez aucun opérateur</b>.`
                : `Toute la commune est raccordable.`) + `</div>` +
-    `<h3 class="dsub">Parmi les ${nf.format(p.ftth)} adresses raccordables</h3>` +
+    `<h3 class="dsub">Parmi les ${nf.format(p.ftth)} adresses raccordables` +
+    (p.btd ? ` <span class="src">— Bouygues relevé chez lui le ${jour(p.btd)}, ` +
+             `les autres d'après l'Arcep</span>` : "") + `</h3>` +
     barres + `<div class="chips">${chips}</div>` + alerteNeuf(p) +
     (gaps.length ? `<div class="note">${gaps.join("<br>")}` +
       (p.fseul ? `<br><b>${nf.format(p.fseul)} adresses où Free est le seul des quatre.</b>` : "") +
