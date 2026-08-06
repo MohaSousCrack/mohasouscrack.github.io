@@ -1112,7 +1112,7 @@ const F = DATA.features;
 const SITE = true;
 /* Le site est statique : ces dates sont figées à la génération, il ne se met
    pas à jour tout seul. Relancer les scripts les rafraîchit. */
-const MAJ = {"arcep": "2026 T1", "genere": "2026-08-06"};
+const MAJ = {"arcep": "2026 T1", "genere": "2026-08-07"};
 /* index code INSEE -> propriétés, utilisé à chaque redessin */
 const parCode = new Map(F.map(f => [f.properties.c, f.properties]));
 
@@ -1451,96 +1451,29 @@ const frais = p => p.ftth > 0 && p.neuf / p.ftth >= NEUF;
 const orangeDouteux = p => p.ftth >= 50 &&
   p.free / p.ftth >= .95 && p.orange / p.ftth < .90;
 
-/* Signature d'une déclaration en retard : un opérateur dessert le parc ancien
-   mais aucune des adresses ouvertes au dernier relevé. Vu à Saint-Thual, où
-   Orange et SFR couvrent les 66 adresses antérieures et zéro des 355 nouvelles,
-   alors que la carte d'Orange annonce la commune desservie. */
-function retardataires(p) {
-  const ancien = p.ftth - p.neuf;
-  if (p.neuf < 20 || ancien <= 0) return [];
-  /* On raisonne sur les adresses NEUVES couvertes, pas sur un total : un
-     opérateur peut dépasser un peu le parc ancien sans avoir suivi l'ouverture
-     (Saint-Guyomard, 104 adresses couvertes pour 94 anciennes et 609 neuves). */
-  return [["Orange", p.orange], ["Bouygues", p.bouygues], ["SFR", p.sfr], ["Free", p.free]]
-    .filter(([, n]) => Math.max(0, n - ancien) < p.neuf * 0.25)
-    .map(([nom]) => nom);
+/* Fin du trimestre couvert par le releve Arcep, et son age en mois. */
+function finTrimestre() {
+  const m = /(\d{4})\s*T(\d)/.exec(MAJ.arcep || "");
+  if (!m) return null;
+  return `${m[1]}-${{1: "03-31", 2: "06-30", 3: "09-30", 4: "12-31"}[+m[2]]}`;
 }
+const MOIS_ARCEP = (() => {
+  const f = finTrimestre();
+  return f ? Math.floor((Date.now() - new Date(f).getTime()) / 2592000000) : 0;
+})();
 
-/* Ancienneté du déploiement. Une commune fraîchement fibrée n'est pas un
-   défaut à cacher : c'est l'argument d'entrée le plus fort — « la fibre vient
-   d'arriver chez vous ». Et tant que le déploiement n'est pas fini, il reste
-   des prises à poser, donc des visites à refaire. */
-const enCours = p => p.tot > 0 && p.ftth / p.tot < 0.9;
-const AGES = {
-  tout:  () => true,
-  neuve: p => frais(p),
-  cours: p => enCours(p),
-  posee: p => !frais(p) && !enCours(p),
-};
-
+/* Un seul avertissement, et seulement quand il sert : un operateur donne tres
+   bas, sur un releve qui a vieilli, et qu'on n'est pas alle verifier chez lui.
+   Le reste du temps la fiche parle d'elle-meme. */
 function alerteNeuf(p) {
-  let out = "";
-  if (frais(p)) {
-    out += `<div class="alerte neuve"><b>Raccordement récent</b> — ` +
-      `${nf.format(p.neuf)} adresses sont devenues raccordables à la dernière ` +
-      `publication. Les opérateurs n'ouvrent pas la commercialisation à la même ` +
-      `date : un opérateur absent ci-dessus a pu ouvrir depuis. À vérifier à ` +
-      `l'adresse exacte.</div>`;
-  }
-  if (p.btd) {
-    out += `<div class="alerte verif"><b>Vérifié chez Bouygues le ` +
-      `${jour(p.btd)}</b> — ${nf.format(p.btn)} bâtiments confirmés raccordables ` +
-      `par Bouygues lui-même, au-delà de ce que déclare l'Arcep. Ma tournée ` +
-      `utilise cette correction pour cette commune.</div>`;
-  }
-  const tard = retardataires(p);
-  if (tard.length) {
-    const liste = tard.length > 1
-      ? tard.slice(0, -1).join(", ") + " et " + tard[tard.length - 1]
-      : tard[0];
-    out += `<div class="alerte tard"><b>${liste} ` +
-      `${tard.length > 1 ? "ne desservent" : "ne dessert"} que le parc antérieur</b> — ` +
-      `les ${nf.format(p.ftth - p.neuf)} adresses déjà raccordables avant la ` +
-      `dernière publication, et aucune des ${nf.format(p.neuf)} nouvelles. ` +
-      `Chez Orange et Bouygues, ce décalage est souvent une déclaration en ` +
-      `retard : sondés sur leurs propres cartes, ils desservent des adresses ` +
-      `que l'Arcep leur refuse — à Saint-Aubin-d'Aubigné, Bouygues couvre ` +
-      `quatre de ses six zones de mutualisation quand l'Arcep l'annonce absent ` +
-      `partout. Chez SFR au contraire, les absences se confirment à 99,8 %.</div>`;
-  }
-  if (enCours(p)) {
-    out += `<div class="alerte cours"><b>Déploiement en cours</b> — ` +
-      `${nf.format(p.tot - p.ftth)} adresses de la commune ne sont pas encore ` +
-      `raccordables. L'opérateur d'infrastructure reste tenu d'achever la zone ` +
-      `dans son délai de complétude.</div>`;
-  }
-  /* L'encadré ci-dessus est plus précis : inutile de répéter le cas Orange. */
-  if (orangeDouteux(p) && !tard.includes("Orange")) {
-    out += `<div class="alerte"><b>Le chiffre Orange est très probablement ` +
-      `sous-évalué</b> — Orange déclare ses ouvertures à l'Arcep avec du retard. ` +
-      `Sur les neuf départements, 16 des 18 communes où Free couvrait tout et ` +
-      `Orange moins de 90 % sont repassées au-dessus de 90 % au relevé suivant, ` +
-      `sur les mêmes adresses. Il y a donc de fortes chances qu'Orange desserve ` +
-      `bien cette commune.</div>`;
-  }
-  return out;
-}
-
-/* « Début délai complétude » : la date à laquelle l'opérateur d'infrastructure
-   a ouvert la zone arrière d'un point de mutualisation, et à partir de laquelle
-   court son obligation de rendre toute la zone raccordable. C'est le meilleur
-   indicateur de l'ancienneté — donc de la maturité — du déploiement. */
-const jour = d => d ? d.slice(8, 10) + "/" + d.slice(5, 7) + "/" + d.slice(0, 4) : "";
-
-function completude(p) {
-  if (!p.dd1) return "";
-  const meme = p.dd1 === p.dd2;
-  const bas = [`${p.pm} zone${p.pm > 1 ? "s" : ""} de PM`];
-  if (p.zone) bas.push(p.zone);
-  if (p.oi) bas.push(p.oi);
-  return `<div class="comp"><span>Début délai complétude</span>` +
-    `<b>${meme ? jour(p.dd1) : jour(p.dd1) + " → " + jour(p.dd2)}</b>` +
-    `<span class="pmn">${bas.join(" · ")}</span></div>`;
+  const suspects = [];
+  if (!p.btd && p.bouygues / p.ftth < .5) suspects.push("Bouygues");
+  if (!p.sfd && p.sfr / p.ftth < .5) suspects.push("SFR");
+  if (!suspects.length || MOIS_ARCEP < 1) return "";
+  return `<div class="alerte"><b>${suspects.join(" et ")} : chiffre à vérifier</b>` +
+    ` — relevé Arcep arrêté au ${jour(finTrimestre())}, il y a ${MOIS_ARCEP} mois.` +
+    ` Un écart de cette taille se comble souvent sans que l'Arcep le sache :` +
+    ` à confirmer sur le site de l'opérateur.</div>`;
 }
 
 /* Quels opérateurs ont été relevés chez eux plutôt que dans le relevé Arcep. */
