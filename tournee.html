@@ -72,7 +72,27 @@
   .pp input{width:100%;border:1px solid #CBD2DA;border-radius:8px;padding:8px 9px;font-size:13px}
   .pp .del{background:transparent;border:1px solid #C33;color:#C33;border-radius:8px;
     padding:7px;font-size:11.5px;font-weight:700;cursor:pointer}
-  .pp .addr{font-size:12px;font-weight:700;color:#333;margin:-2px 0 0}
+  .pp .addr{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;
+    color:#333;margin:-2px 0 0}
+  .pp .addr span{flex:1;min-width:0}
+  .pp .addr .cp{flex:0 0 auto;border:1px solid #CBD2DA;background:#fff;color:#555;
+    border-radius:7px;padding:4px 7px;font-size:12px;line-height:1;cursor:pointer}
+  /* Leaflet pose user-select:none sur tout son conteneur, bulles comprises : un
+     appui long sur l'adresse n'ouvrait donc pas « Copier », et le geste filait
+     à la carte. Le contenu des bulles et des panneaux redevient sélectionnable
+     — et le bouton ⧉ évite d'avoir à viser du texte au doigt. */
+  .leaflet-popup-content,.sheet{-webkit-user-select:text;user-select:text}
+  /* Le dossier de rappel : cache tant que le tampon Rappel n'est pas pose,
+     pour que la bulle reste courte sur les milliers de maisons ordinaires. */
+  .pp .rp{display:none;flex-direction:column;gap:6px;background:#EAF6F9;
+    border:1px solid #A9D8E2;border-radius:9px;padding:8px}
+  .pp .rpT{font-size:10.5px;font-weight:800;letter-spacing:.09em;
+    text-transform:uppercase;color:#0B6C80}
+  .pp .rpQ{display:flex;gap:5px}
+  .pp .rpQ button{flex:1;border:1px solid #A9D8E2;background:#fff;color:#0B6C80;
+    border-radius:7px;padding:6px 2px;font-size:11px;font-weight:700;cursor:pointer}
+  .pp .rpL{display:block;text-align:center;font-size:11.5px;font-weight:700;
+    color:#0B6C80;text-decoration:none;padding-top:2px}
   .pp .fibreTag{font-size:11.5px;font-weight:700;color:#7a4a00;background:#FFF1CC;
     border:1px solid #F2C46B;border-radius:7px;padding:5px 7px;margin:-3px 0 0}
   .pp .fibreTag.ok{color:#14532d;background:#E4F5E9;border-color:#9BD3AE}
@@ -167,6 +187,13 @@
       <div class="note">
         Ouvre la carte fibre sur la ville active : la part des adresses raccordables,
         et lesquelles Free, Orange, Bouygues et SFR commercialisent vraiment.
+      </div>
+
+      <h2>Le soir, à la maison</h2>
+      <a class="linkBtn" id="linkNotes" href="notes.html">📓 Mes rappels</a>
+      <div class="note">
+        Tous les foyers tamponnés <b>Rappel</b>, de toutes tes villes, triés par date :
+        qui rappeler aujourd'hui, avec son prénom, son numéro, ce qu'il payait et chez qui.
       </div>
 
       <h2>Maisons de la ville active</h2>
@@ -403,6 +430,36 @@
     var hh = ("0"+d.getHours()).slice(-2), mi = ("0"+d.getMinutes()).slice(-2);
     return dd + "/" + mm + (withYear ? "/" + d.getFullYear() : "") + " " + hh + ":" + mi;
   }
+  // La date d'un rappel est stockée telle que l'utilisateur la lit, sans fuseau :
+  // "2026-08-12T18:30", le format que rend et qu'attend <input datetime-local>.
+  function dateLocale(d){
+    var p = function(n){ return ("0" + n).slice(-2); };
+    return d.getFullYear() + "-" + p(d.getMonth()+1) + "-" + p(d.getDate()) +
+           "T" + p(d.getHours()) + ":" + p(d.getMinutes());
+  }
+  // Copier une adresse d'un seul appui, plutôt que de viser du texte au doigt.
+  // navigator.clipboard exige une origine sûre : en https il est là, ouvert en
+  // fichier local il ne l'est pas, d'où le repli par zone de texte.
+  function copier(t){
+    var dit = function(ok){
+      toast(ok ? "Adresse copiée" : "Copie refusée par le navigateur — sélectionne le texte.");
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(t).then(function(){ dit(true); },
+                                           function(){ dit(false); });
+      return;
+    }
+    try{
+      var z = document.createElement("textarea");
+      z.value = t;
+      z.style.position = "fixed"; z.style.top = "-1000px";
+      document.body.appendChild(z);
+      z.select();
+      var ok = document.execCommand("copy");
+      z.remove();
+      dit(ok);
+    }catch(e){ dit(false); }
+  }
   function defaultHint(){
     return "Touche une maison : couleur, opérateur, note. Reste appuyé sur la carte pour ajouter un point.";
   }
@@ -512,12 +569,34 @@
     });
     renderChips(); renderCityBtn();
   }
+  // La bulle grandit d'un bon tiers quand le dossier de rappel s'ouvre. Sans
+  // plafond, elle déborde de la carte sur un petit écran et son bas — la date,
+  // la note, « Supprimer » — devient inatteignable. Avec, elle défile.
+  function ouvrirBulle(m, h){
+    if (!m) return;
+    m.bindPopup(buildPopup(h), {closeButton: false, autoPanPadding: [8, 8],
+      maxHeight: Math.max(200, map.getSize().y - 150)}).openPopup();
+  }
+  // Leaflet ne sait recadrer une bulle que sur une vue stabilisée. Ouverte
+  // pendant l'animation de zoom du recentrage, une bulle haute — celle d'un
+  // foyer à rappeler — dépasse du haut de la carte et son bas devient
+  // inatteignable. On attend donc la fin du mouvement ; le repli couvre le cas
+  // où le recentrage n'avait rien à animer et n'annoncera aucune fin.
+  function centrerEtOuvrir(h, zoom){
+    var m = markersById[h.id];
+    if (!m) return;
+    var fait = false;
+    function ouvre(){ if (fait) return; fait = true; ouvrirBulle(m, h); }
+    map.setView([h.lat, h.lng], zoom || 18);
+    map.once("moveend", ouvre);
+    setTimeout(ouvre, 350);
+  }
   function addMarker(h){
     var st = STATUSES[h.status] || STATUSES.avoir;
     var ring = ringOf(h);
     var m = L.circleMarker([h.lat, h.lng], {radius:rayonOf(h), color:ring.color,
       weight:ring.weight, fillColor:st.color, fillOpacity:fibreEtat(h) === "sans" ? .6 : .95});
-    var openChooser = function(e){ if (e) L.DomEvent.stop(e); m.bindPopup(buildPopup(h), {closeButton:false}).openPopup(); };
+    var openChooser = function(e){ if (e) L.DomEvent.stop(e); ouvrirBulle(m, h); };
     m.on("click", openChooser);
     m.on("contextmenu", openChooser);
     m.addTo(layer);
@@ -535,11 +614,91 @@
     var c = activeCity();
     document.getElementById("cityBtn").textContent = (c ? c.name : "Ville") + " ▾";
   }
+  // Le dossier de rappel. Il ne sert qu'aux foyers tamponnés « Rappel », d'où
+  // son affichage conditionnel : sur une tournée, l'immense majorité des bulles
+  // n'ont besoin que d'un tampon et d'un opérateur. C'est notes.html qui relit
+  // ces champs le soir venu.
+  var RAPPEL_RAPIDE = [["Ce soir", 0, 18], ["Demain", 1, 18], ["+1 sem.", 7, 18]];
+  var RAPPEL_CHAMPS = [
+    ["prenom", "Prénom", "text"],
+    ["tel",    "Téléphone", "tel"],
+    ["prix",   "Prix payé (ex : 39,99)", "text"]
+  ];
+  // Le dossier complet, tel qu'il voyage dans les sauvegardes et que le relit
+  // notes.html. Saisi a la main, donc jamais reconstituable : l'import doit le
+  // transporter, au meme titre que la note.
+  var RAPPEL_DATA = RAPPEL_CHAMPS.map(function(c){ return c[0]; }).concat("rappelAt");
+  function blocRappel(h){
+    var box = document.createElement("div"); box.className = "rp";
+    var t = document.createElement("div"); t.className = "rpT";
+    t.textContent = "À rappeler";
+    box.appendChild(t);
+
+    RAPPEL_CHAMPS.forEach(function(c){
+      var i = document.createElement("input");
+      i.type = c[2]; i.placeholder = c[1]; i.value = h[c[0]] || "";
+      if (c[0] === "prix") i.inputMode = "decimal";
+      i.addEventListener("input", function(){
+        h[c[0]] = i.value.trim() || null; save();
+      });
+      box.appendChild(i);
+    });
+
+    var quand = document.createElement("input");
+    quand.type = "datetime-local"; quand.value = h.rappelAt || "";
+    quand.addEventListener("input", function(){
+      h.rappelAt = quand.value || null; save();
+    });
+    box.appendChild(quand);
+
+    var q = document.createElement("div"); q.className = "rpQ";
+    RAPPEL_RAPIDE.forEach(function(r){
+      var b = document.createElement("button");
+      b.textContent = r[0];
+      b.addEventListener("click", function(){
+        var d = new Date();
+        d.setDate(d.getDate() + r[1]); d.setHours(r[2], 0, 0, 0);
+        // « Ce soir » cliqué après 18 h ne veut rien dire : on passe à demain.
+        if (d.getTime() < Date.now()) d.setDate(d.getDate() + 1);
+        h.rappelAt = dateLocale(d); quand.value = h.rappelAt; save();
+      });
+      q.appendChild(b);
+    });
+    box.appendChild(q);
+
+    var a = document.createElement("a");
+    a.className = "rpL"; a.href = "notes.html";
+    a.textContent = "📓 Voir tous mes rappels";
+    box.appendChild(a);
+    return box;
+  }
+
+  // Ce que les opérateurs ont répondu eux-mêmes, quand on est allé leur demander.
+  // Ancien format : une simple date, qui ne pouvait venir que de Bouygues.
+  function verifTexte(h){
+    var v = h.verif;
+    if (!v) return "";
+    if (typeof v === "string") v = [["Bouygues", v]];
+    var jour = function(d){ return d ? d.slice(8,10) + "/" + d.slice(5,7) : ""; };
+    var noms = v.map(function(x){ return x[0]; });
+    return " · " + noms.join(" et ") + (noms.length > 1 ? " vérifiés" : " vérifié") +
+           " le " + jour(v[0][1]);
+  }
+
   function buildPopup(h){
     var wrap = document.createElement("div"); wrap.className = "pp";
     if (h.addr){
-      var ad = document.createElement("div"); ad.className = "addr"; ad.textContent = h.addr;
-      if (h.logements > 1) ad.textContent += " — " + h.logements + " logements";
+      var ad = document.createElement("div"); ad.className = "addr";
+      var txt = document.createElement("span");
+      txt.textContent = h.addr + (h.logements > 1 ? " — " + h.logements + " logements" : "");
+      var cp = document.createElement("button");
+      cp.className = "cp"; cp.textContent = "⧉";
+      cp.title = "Copier l'adresse";
+      cp.addEventListener("click", function(){
+        var c = activeCity();
+        copier(h.addr + (c ? ", " + c.name : ""));
+      });
+      ad.appendChild(txt); ad.appendChild(cp);
       wrap.appendChild(ad);
     }
     var etat = fibreEtat(h);
@@ -559,16 +718,17 @@
         fb.className += " ok";
         fb.textContent = "✓ Fibre : " + fibreListe(h, true).join(", ");
       }
-      // Quand Bouygues a ete interroge directement, on le dit : c'est plus
+      // Quand un opérateur a ete interroge directement, on le dit : c'est plus
       // recent que le releve trimestriel de l'Arcep.
-      if (h.verif){
-        fb.textContent += " · Bouygues vérifié le " +
-          h.verif.slice(8, 10) + "/" + h.verif.slice(5, 7);
-      }
+      fb.textContent += verifTexte(h);
       wrap.appendChild(fb);
     }
     var row1 = document.createElement("div"); row1.className = "row";
     var row2 = document.createElement("div"); row2.className = "row";
+    var rappel = blocRappel(h);
+    function majRappel(){
+      rappel.style.display = h.status === "rappel" ? "flex" : "none";
+    }
     ORDER.forEach(function(k, i){
       var b = document.createElement("button");
       b.textContent = STATUSES[k].label;
@@ -581,7 +741,16 @@
         h.status = retour ? NEUF : k;
         h.statusTs = retour ? null : Date.now();
         refreshMarker(h);
-        renderChips(); save(); map.closePopup();
+        renderChips(); save();
+        [row1, row2].forEach(function(r){
+          Array.prototype.forEach.call(r.children, function(c){ c.style.outline = ""; });
+        });
+        if (!retour) b.style.outline = "2px solid #14161B";
+        majRappel();
+        // Poser « Rappel » ouvre le dossier du foyer : refermer la bulle ici
+        // obligerait à rouvrir la maison pour noter un prénom et une heure,
+        // alors qu'on est encore devant la porte.
+        if (h.status !== "rappel") map.closePopup();
         toast(retour ? "→ pas encore visitée" : "→ " + STATUSES[k].label,
               "Annuler", undoLast);
       });
@@ -612,7 +781,9 @@
       save(); renderAll(); map.closePopup();
     });
     wrap.appendChild(row1); wrap.appendChild(row2);
-    wrap.appendChild(ops); wrap.appendChild(noteIn); wrap.appendChild(del);
+    wrap.appendChild(ops); wrap.appendChild(rappel);
+    wrap.appendChild(noteIn); wrap.appendChild(del);
+    majRappel();
     return wrap;
   }
   function renderChips(){
@@ -715,6 +886,10 @@
   });
   map.on("contextmenu", function(e){ // appui long mobile / clic droit PC
     if (lassoMode) return;
+    // Un appui long dans une bulle vise le texte, pas la carte : y poser un
+    // point serait la dernière chose voulue.
+    var cible = e && e.originalEvent && e.originalEvent.target;
+    if (cible && cible.closest && cible.closest(".leaflet-popup")) return;
     if (e && e.originalEvent && e.originalEvent.preventDefault) e.originalEvent.preventDefault();
     addHouse(e.latlng.lat, e.latlng.lng, "avoir");
   });
@@ -965,9 +1140,7 @@
       r.addEventListener("click", function(){
         document.getElementById("listPanel").style.display = "none";
         if (filter && filter !== h.status){ filter = null; renderAll(); }
-        map.setView([h.lat, h.lng], 18);
-        var m = markersById[h.id];
-        if (m) m.bindPopup(buildPopup(h), {closeButton:false}).openPopup();
+        centrerEtOuvrir(h);
       });
       rows.appendChild(r);
     });
@@ -1049,7 +1222,15 @@
     // fic.bt : verification faite directement chez Bouygues, 1 fibre, 0 non,
     // -1 inconnu. L'Arcep declare Bouygues absent bien apres qu'il a ouvert :
     // quand la verification existe, c'est elle qui fait foi.
+    // fic.sf : idem pour SFR, mais releve sur ses emprises de couverture et non
+    // adresse par adresse. Une emprise ne prouve pas qu'une adresse donnee est
+    // raccordable : elle sert donc a confirmer ou a retirer SFR la ou l'Arcep
+    // voit deja de la fibre, jamais a en declarer sur une adresse non fibree.
+    // fic.og : Orange, interrogé à l'adresse depuis son référentiel REFLET_FTTH.
+    // Même statut que Bouygues : une réponse par bâtiment, qui fait foi.
     var bt = fic.bt || null, btd = fic.btd || null;
+    var sf = fic.sf || null, sfd = fic.sfd || null;
+    var og = fic.og || null, ogd = fic.ogd || null;
     // Plusieurs immeubles peuvent partager exactement le meme point (un batiment
     // decoupe en plusieurs entrees) : on numerote les doublons pour que chacun
     // garde une identite propre d'un chargement a l'autre.
@@ -1060,11 +1241,26 @@
       var cle = x[0].toFixed(6) + "/" + x[1].toFixed(6);
       vus[cle] = (vus[cle] || 0) + 1;
       var id = "arcep/" + fic.insee + "/" + cle + (vus[cle] > 1 ? "/" + vus[cle] : "");
-      var ops = x[5], verif = bt ? bt[i] : undefined;
-      if (verif === 1) ops |= 4;              // Bouygues confirme
-      else if (verif === 0) ops &= ~4;        // Bouygues dément
+      // Bouygues et Orange répondent à l'adresse : leur réponse fait foi, même
+      // sur un bâtiment que l'Arcep ne donne pas fibré. SFR ne publie qu'une
+      // emprise de couverture : elle confirme ou retire SFR là où l'Arcep voit
+      // déjà de la fibre, jamais ailleurs — et c'est bien le masque de l'Arcep
+      // qu'il faut regarder, pas celui que Bouygues vient de corriger.
+      var arcep = x[5], ops = arcep, sources = [];
+      var vb = bt ? bt[i] : undefined;
+      if (vb === 1) ops |= 4;                 // Bouygues confirme
+      else if (vb === 0) ops &= ~4;           // Bouygues dément
+      if (vb === 1 || vb === 0) sources.push(["Bouygues", btd]);
+      var vo = og ? og[i] : undefined;
+      if (vo === 1) ops |= 2;
+      else if (vo === 0) ops &= ~2;
+      if (vo === 1 || vo === 0) sources.push(["Orange", ogd]);
+      var vs = arcep && sf ? sf[i] : undefined;
+      if (vs === 1) ops |= 8;
+      else if (vs === 0) ops &= ~8;
+      if (vs === 1 || vs === 0) sources.push(["SFR", sfd]);
       return { lat: x[0], lng: x[1], addr: addr, ops: ops,
-               verif: (verif === 1 || verif === 0) ? btd : null,
+               verif: sources.length ? sources : null,
                logements: x[4] > 1 ? x[4] : null, osm: id };
     });
   }
@@ -1236,6 +1432,11 @@
                    status: ih.status || "avoir", op: ih.op || null, note: ih.note || null,
                    osm: ih.osm || null, addr: ih.addr || null,
                    ts: ih.ts || Date.now(), statusTs: ih.statusTs || null };
+        // L'état fibre et le dossier de rappel suivent la maison : le premier
+        // se rechargerait depuis l'Arcep, le second se perdrait pour de bon.
+        ["ops", "logements", "verif"].concat(RAPPEL_DATA).forEach(function(k){
+          if (ih[k] != null) nh[k] = ih[k];
+        });
         data.houses.push(nh);
         if (nh.osm) idx[cid + "|" + nh.osm] = nh;
         idx[cid + "|" + coordKey(nh.lat, nh.lng)] = nh;
@@ -1252,6 +1453,9 @@
         if (!ex.op && ih.op){ ex.op = ih.op; changed = true; }
         if (!ex.note && ih.note){ ex.note = ih.note; changed = true; }
         if (!ex.addr && ih.addr){ ex.addr = ih.addr; }
+        RAPPEL_DATA.forEach(function(k){
+          if (!ex[k] && ih[k]){ ex[k] = ih[k]; changed = true; }
+        });
         if (changed) updated++;
       }
     });
@@ -1311,6 +1515,14 @@
         if (h.statusTs) l += " — " + fmtTs(h.statusTs, true);
         if (h.note) l += " — « " + h.note + " »";
         lines.push(l);
+        // Le dossier de rappel sur sa propre ligne : c'est ce qu'on lit le soir,
+        // le téléphone à la main, et ça n'a rien à faire noyé dans l'adresse.
+        var d = [];
+        if (h.prenom) d.push(h.prenom);
+        if (h.tel) d.push("☎ " + h.tel);
+        if (h.prix) d.push("payait " + h.prix);
+        if (h.rappelAt) d.push("rappeler le " + h.rappelAt.replace("T", " à "));
+        if (d.length) lines.push("    " + d.join(" · "));
       });
       lines.push("");
     });
@@ -1525,6 +1737,22 @@
     document.getElementById("backupPanel").style.display = "none";
   });
 
+  // ---------- Arrivée depuis la page des rappels ----------
+  // notes.html renvoie ici sur un foyer précis : #maison=<id>. On bascule sur sa
+  // ville et on ouvre sa bulle, prête à être corrigée.
+  function maisonDepuisUrl(id){
+    var h = data.houses.find(function(x){ return x.id === id; });
+    if (!h) return false;
+    history.replaceState(null, "", location.pathname);
+    if (h.cityId !== data.activeCityId){ data.activeCityId = h.cityId; save(); }
+    filter = null; fibreFilter = false;
+    // Le démarrage rappelle renderAll() juste après nous, ce qui rebâtit tous
+    // les marqueurs : ouvrir la bulle maintenant reviendrait à l'ouvrir sur un
+    // marqueur qui va disparaître. On attend donc la fin du démarrage.
+    setTimeout(function(){ centrerEtOuvrir(h); }, 0);
+    return true;
+  }
+
   // ---------- Arrivée depuis la carte fibre ----------
   // La carte fibre envoie ici #ville=Nom&lat=..&lng=.. : on active la ville si
   // elle existe deja, sinon on la cree au bon endroit.
@@ -1536,6 +1764,7 @@
       var i = kv.indexOf("=");
       if (i > 0) p[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1).replace(/\+/g, " "));
     });
+    if (p.maison) return maisonDepuisUrl(p.maison);
     if (!p.ville) return false;
     history.replaceState(null, "", location.pathname);   // pas de re-ajout au rechargement
     var existe = data.cities.find(function(c){

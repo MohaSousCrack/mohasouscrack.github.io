@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mes rappels — MohaBanger2ouf</title>
+<style>
+  :root{
+    --ink:#14161B; --ink-2:#20242C; --line:#343A45;
+    --paper:#FFFFFF; --muted:#9AA3B0;
+    --signe:#1FA45B; --refus:#E33A2E; --absent:#F2A31B;
+    --rappel:#12A5BF; --repasser:#9B59B6; --avoir:#6E7A8A;
+    --route:#2A7FFF; --retard:#E33A2E;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;min-height:100%}
+  body{background:var(--ink);color:var(--paper);
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    padding:0 12px calc(28px + env(safe-area-inset-bottom))}
+  .wrap{width:100%;max-width:760px;margin:0 auto}
+
+  header{position:sticky;top:0;z-index:10;background:var(--ink);
+    padding:12px 0 8px;border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:center;gap:8px}
+  .brand h1{margin:0;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+  .brand h1 a{color:inherit;text-decoration:none}
+  .brand .save{margin-left:auto;font-size:10.5px;color:var(--muted)}
+  .titre{display:flex;align-items:center;gap:10px;margin:10px 0 2px}
+  .titre h2{margin:0;font-size:22px;font-weight:800;letter-spacing:-.01em;white-space:nowrap}
+  .titre a{margin-left:auto;font-size:12.5px;font-weight:700;color:var(--paper);
+    text-decoration:none;border:1px solid var(--line);background:var(--ink-2);
+    border-radius:999px;padding:6px 12px;white-space:nowrap}
+  .n{display:block;font-size:13px;color:var(--muted);
+    font-variant-numeric:tabular-nums;margin:0 0 9px}
+  #q{width:100%;background:var(--ink-2);border:1px solid var(--line);border-radius:10px;
+    color:var(--paper);padding:10px 12px;font-size:15px}
+  .chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-top:8px}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{flex:0 0 auto;display:flex;align-items:center;gap:6px;background:var(--ink-2);
+    border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:13px;
+    font-weight:600;color:var(--paper);cursor:pointer;font-variant-numeric:tabular-nums}
+  .chip .dot{width:9px;height:9px;border-radius:50%}
+  .chip.active{border-color:var(--paper)}
+  select.chip{padding:5px 8px}
+
+  h3.grp{margin:22px 0 8px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--muted);display:flex;align-items:center;gap:8px}
+  h3.grp b{color:var(--paper);font-size:11px}
+  h3.grp.retard{color:#FF8A80}
+
+  .card{background:var(--ink-2);border:1px solid var(--line);border-left:3px solid var(--rappel);
+    border-radius:12px;padding:12px 13px;margin-bottom:9px}
+  .card.retard{border-left-color:var(--retard)}
+  .card.repasser{border-left-color:var(--repasser)}
+  .l-quand{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);
+    font-variant-numeric:tabular-nums}
+  .l-quand .passe{color:#FF8A80;font-weight:700}
+  .l-quand .op{margin-left:auto;font-size:10px;font-weight:800;border-radius:6px;
+    padding:3px 7px;color:#fff}
+  .l-qui{font-size:18px;font-weight:800;margin:5px 0 1px;letter-spacing:-.01em}
+  .l-ou{font-size:13px;color:var(--muted);line-height:1.45}
+  .l-prix{font-size:13.5px;margin-top:5px}
+  .l-prix b{color:var(--absent)}
+  .l-note{font-size:13px;color:var(--paper);background:#191D24;border:1px solid var(--line);
+    border-radius:8px;padding:7px 9px;margin-top:7px;line-height:1.45}
+  .acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .acts a,.acts button{flex:1 1 auto;text-align:center;text-decoration:none;
+    border:1px solid var(--line);background:#191D24;color:var(--paper);border-radius:9px;
+    padding:9px 10px;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap}
+  .acts .tel{flex:2 1 130px;background:#0E3B44;border-color:#17656F;color:#B8ECF5}
+  .acts .tel.off{background:#191D24;border-color:var(--line);color:var(--muted);cursor:default}
+  .acts .ok{background:#183A26;border-color:#2f6b3f;color:#B7E7C6}
+  .acts .no{background:#3A2023;border-color:#7a2f2f;color:#F2B8B4}
+  .acts .mini{flex:0 0 auto;padding:9px 11px;color:var(--muted)}
+
+  .edit{display:none;flex-direction:column;gap:6px;margin-top:9px;
+    border-top:1px solid var(--line);padding-top:9px}
+  .edit input{width:100%;background:var(--ink);border:1px solid var(--line);
+    border-radius:9px;color:var(--paper);padding:9px 10px;font-size:14px}
+  .edit .lab{font-size:11px;color:var(--muted);margin:2px 0 -2px}
+
+  .vide{border:1px dashed var(--line);border-radius:12px;padding:22px 18px;margin-top:22px;
+    color:var(--muted);font-size:14px;line-height:1.65}
+  .vide b{color:var(--paper)}
+  .vide .bigBtn{display:inline-block;margin-top:12px;border:1px solid var(--line);
+    background:var(--ink-2);color:var(--paper);border-radius:10px;padding:11px 16px;
+    font-size:13.5px;font-weight:700;cursor:pointer;text-decoration:none}
+  .bandeau{background:#3A3320;border:1px solid #7a6a2f;border-radius:10px;padding:10px 12px;
+    font-size:12.5px;line-height:1.5;margin-top:10px}
+
+  footer{margin-top:30px;padding-top:14px;border-top:1px solid var(--line);
+    font-size:12px;line-height:1.7;color:var(--muted)}
+  footer a{color:var(--paper)}
+
+  #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:22px;z-index:50;
+    background:var(--ink);color:var(--paper);border:1px solid var(--line);border-radius:10px;
+    padding:10px 14px;font-size:13px;display:none;align-items:center;gap:12px;max-width:88vw}
+  #toast button{border:none;background:none;color:var(--absent);font-weight:700;
+    font-size:13px;cursor:pointer}
+  button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid #fff;outline-offset:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <h1><a href="index.html">◀ MohaBanger2ouf</a></h1>
+      <span class="save" id="saveState"></span>
+    </div>
+    <div class="titre">
+      <h2>Mes rappels</h2>
+      <a href="tournee.html">🏠 Ma tournée</a>
+    </div>
+    <span class="n" id="compte"></span>
+    <input id="q" type="search" placeholder="Chercher un prénom, une rue, une ville…" autocomplete="off">
+    <div class="chips" id="chips"></div>
+  </header>
+
+  <main id="liste"></main>
+
+  <footer>
+    Ces fiches sont celles que tu as remplies sur le terrain, dans la bulle d'une maison
+    tamponnée <b>Rappel</b>. Elles vivent <b>dans ce téléphone</b>, dans la mémoire du
+    navigateur — rien n'est envoyé nulle part, et personne d'autre n'y a accès.
+    <br>
+    Pense à <a href="tournee.html">exporter ta sauvegarde</a> de temps en temps : effacer
+    les données du navigateur les effacerait aussi.
+  </footer>
+
+</div>
+
+<div id="toast"><span id="toastMsg"></span><button id="toastBtn"></button></div>
+<input type="file" id="fileInput" accept=".json,application/json" style="display:none">
+
+<script>
+(function(){
+  // Mêmes conventions que tournee.html : c'est le même jeu de données, lu par
+  // l'autre bout de la journée. Rien n'est recopié, rien n'est synchronisé —
+  // les deux pages ouvrent le même tiroir.
+  var KEY = "tournee-v3", KEY_V2 = "tournee-v2";
+  var STATUSES = {
+    signe:    {label:"Signé",      color:"#1FA45B"},
+    refus:    {label:"Refus",      color:"#E33A2E"},
+    absent:   {label:"Absent",     color:"#F2A31B"},
+    rappel:   {label:"Rappel",     color:"#12A5BF"},
+    repasser: {label:"À repasser", color:"#9B59B6"},
+    avoir:    {label:"À voir",     color:"#6E7A8A"}
+  };
+  var OPS = {
+    free:     {label:"Free",     color:"#E1000F"},
+    orange:   {label:"Orange",   color:"#FF7900"},
+    sfr:      {label:"SFR",      color:"#2ECC71"},
+    bouygues: {label:"Bouygues", color:"#33A1FD"},
+    autre:    {label:"Autre",    color:"#C0C0C0"}
+  };
+  var JOURS = ["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"];
+  var MOIS = ["janv.","févr.","mars","avr.","mai","juin","juil.","août",
+              "sept.","oct.","nov.","déc."];
+  var GROUPES = [
+    {k:"retard",  titre:"En retard"},
+    {k:"auj",     titre:"Aujourd'hui"},
+    {k:"demain",  titre:"Demain"},
+    {k:"semaine", titre:"Cette semaine"},
+    {k:"tard",    titre:"Plus tard"},
+    {k:"sans",    titre:"Sans date"}
+  ];
+
+  var data = { cities: [], houses: [], activeCityId: null };
+  var lectureSeule = false;      // sauvegarde ouverte depuis un fichier
+  var voirRepasser = false;
+  var ville = "";
+  var recherche = "";
+  var lastUndo = null;
+
+  // ---------- Stockage, identique à celui de la tournée ----------
+  var mode = "memory";
+  try{
+    if (window.storage) mode = "claude";
+    else if (window.localStorage){
+      localStorage.setItem("__t","1"); localStorage.removeItem("__t"); mode = "local";
+    }
+  }catch(e){ mode = "memory"; }
+
+  async function stGet(k){
+    if (mode === "claude"){ var r = await window.storage.get(k); return r ? r.value : null; }
+    if (mode === "local") return localStorage.getItem(k);
+    return null;
+  }
+  async function stSet(k, v){
+    if (mode === "claude"){ var r = await window.storage.set(k, v); return !!r; }
+    if (mode === "local"){ localStorage.setItem(k, v); return true; }
+    return false;
+  }
+  function setSave(t){ document.getElementById("saveState").textContent = t; }
+
+  async function charger(){
+    for (var i = 0; i < 2; i++){
+      try{
+        var v = await stGet(i ? KEY_V2 : KEY);
+        if (v){ data = JSON.parse(v); setSave("✓ local"); return; }
+      }catch(e){}
+    }
+    setSave(mode === "memory" ? "⚠ hors ligne" : "");
+  }
+  async function sauver(){
+    if (lectureSeule) return;
+    try{
+      var ok = await stSet(KEY, JSON.stringify(data));
+      setSave(ok ? "✓ local" : "⚠ non enregistré");
+    }catch(e){ setSave("⚠ non enregistré"); }
+  }
+
+  // ---------- Dates ----------
+  // Les rappels sont stockés "2026-08-12T18:30", sans fuseau : c'est l'heure que
+  // le vendeur a saisie et celle qu'il doit lire. On la relit donc à la main,
+  // sans passer par l'analyseur de Date, dont les règles varient avec la forme.
+  function tsDe(s){
+    if (!s) return null;
+    var m = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?$/.exec(String(s));
+    if (!m) return null;
+    return new Date(+m[1], +m[2]-1, +m[3], +(m[4]||0), +(m[5]||0)).getTime();
+  }
+  // Arrondi plutôt que division entière : un changement d'heure fait des
+  // journées de 23 ou 25 h, qui décaleraient le classement d'un cran.
+  function joursDAujourdhui(ts){
+    var a = new Date(ts); a.setHours(0,0,0,0);
+    var b = new Date();   b.setHours(0,0,0,0);
+    return Math.round((a - b) / 86400000);
+  }
+  function groupeDe(ts){
+    if (ts == null) return "sans";
+    var j = joursDAujourdhui(ts);
+    if (j < 0) return "retard";
+    if (j === 0) return "auj";
+    if (j === 1) return "demain";
+    if (j <= 7) return "semaine";
+    return "tard";
+  }
+  function quandTexte(ts){
+    if (ts == null) return "date à fixer";
+    var d = new Date(ts), j = joursDAujourdhui(ts);
+    var hh = ("0"+d.getHours()).slice(-2) + ":" + ("0"+d.getMinutes()).slice(-2);
+    if (j === 0) return hh;
+    if (j === 1) return "demain " + hh;
+    if (j === -1) return "hier " + hh;
+    if (j > 1 && j <= 7) return JOURS[d.getDay()] + " " + hh;
+    return d.getDate() + " " + MOIS[d.getMonth()] +
+           (j < -7 || j > 180 ? " " + d.getFullYear() : "") + " · " + hh;
+  }
+  function dateLocale(d){
+    var p = function(n){ return ("0" + n).slice(-2); };
+    return d.getFullYear() + "-" + p(d.getMonth()+1) + "-" + p(d.getDate()) +
+           "T" + p(d.getHours()) + ":" + p(d.getMinutes());
+  }
+
+  // ---------- Petits formats ----------
+  function prixTexte(p){
+    if (!p) return "";
+    var s = String(p).trim();
+    return /^\d+([.,]\d+)?$/.test(s) ? s + " €/mois" : s;
+  }
+  function telHref(t){ return "tel:" + String(t).replace(/[^\d+]/g, ""); }
+  function villeDe(h){
+    var c = data.cities.find(function(x){ return x.id === h.cityId; });
+    return c ? c.name : "";
+  }
+  function adresseDe(h){
+    return h.addr || ("Maison (" + h.lat.toFixed(5) + ", " + h.lng.toFixed(5) + ")");
+  }
+
+  // ---------- Sélection ----------
+  function fiches(){
+    var out = data.houses.filter(function(h){
+      if (h.status !== "rappel" && !(voirRepasser && h.status === "repasser")) return false;
+      if (ville && h.cityId !== ville) return false;
+      if (recherche){
+        var foin = [h.prenom, h.tel, h.prix, h.note, h.addr, villeDe(h),
+                    (OPS[h.op]||{}).label].join(" ").toLowerCase();
+        if (foin.indexOf(recherche) < 0) return false;
+      }
+      return true;
+    });
+    // On ne pose rien sur la maison elle-même : tout champ ajouté ici partirait
+    // dans la sauvegarde exportée, où il n'a rien à faire.
+    out.sort(function(a, b){
+      var ta = tsDe(a.rappelAt), tb = tsDe(b.rappelAt);
+      if (ta == null && tb == null) return (b.statusTs||0) - (a.statusTs||0);
+      if (ta == null) return 1;
+      if (tb == null) return -1;
+      return ta - tb;
+    });
+    return out;
+  }
+
+  // ---------- Rendu ----------
+  function badgeOp(h){
+    if (!h.op || !OPS[h.op]) return null;
+    var s = document.createElement("span");
+    s.className = "op"; s.style.background = OPS[h.op].color;
+    s.textContent = OPS[h.op].label;
+    return s;
+  }
+
+  function carte(h){
+    var ts = tsDe(h.rappelAt);
+    var g = groupeDe(ts);
+    var c = document.createElement("article");
+    c.className = "card" + (g === "retard" ? " retard" : "") +
+                  (h.status === "repasser" ? " repasser" : "");
+
+    var quand = document.createElement("div"); quand.className = "l-quand";
+    var q = document.createElement("span");
+    q.textContent = (h.status === "repasser" ? "↩ à repasser · " : "⏰ ") + quandTexte(ts);
+    quand.appendChild(q);
+    // Une heure déjà passée dans la journée : le dire, sans sortir la fiche du
+    // jour — c'est encore aujourd'hui qu'il faut appeler.
+    if (g === "auj" && ts != null && ts < Date.now()){
+      var p = document.createElement("span"); p.className = "passe";
+      p.textContent = "passé"; quand.appendChild(p);
+    }
+    var b = badgeOp(h); if (b) quand.appendChild(b);
+    c.appendChild(quand);
+
+    var qui = document.createElement("div"); qui.className = "l-qui";
+    qui.textContent = h.prenom || "Sans prénom";
+    c.appendChild(qui);
+
+    var ou = document.createElement("div"); ou.className = "l-ou";
+    ou.textContent = adresseDe(h) + (villeDe(h) ? " · " + villeDe(h) : "");
+    c.appendChild(ou);
+
+    if (h.prix){
+      var pr = document.createElement("div"); pr.className = "l-prix";
+      pr.appendChild(document.createTextNode("Payait "));
+      var fort = document.createElement("b");
+      fort.textContent = prixTexte(h.prix);
+      pr.appendChild(fort);
+      if (h.op && OPS[h.op])
+        pr.appendChild(document.createTextNode(" chez " + OPS[h.op].label));
+      c.appendChild(pr);
+    }
+    if (h.note){
+      var n = document.createElement("div"); n.className = "l-note";
+      n.textContent = "« " + h.note + " »";
+      c.appendChild(n);
+    }
+
+    // --- actions
+    var acts = document.createElement("div"); acts.className = "acts";
+    if (h.tel){
+      var a = document.createElement("a");
+      a.className = "tel"; a.href = telHref(h.tel);
+      a.textContent = "📞 " + h.tel;
+      acts.appendChild(a);
+    } else {
+      var s = document.createElement("span");
+      s.className = "tel off"; s.textContent = "aucun numéro noté";
+      acts.appendChild(s);
+    }
+    acts.appendChild(bouton("✅ Signé", "ok", function(){
+      changerStatut(h, "signe");
+    }));
+    acts.appendChild(bouton("✕ Refus", "no", function(){
+      changerStatut(h, "refus");
+    }));
+    acts.appendChild(bouton("↻ +1 j", "mini", function(){ reporter(h, 1); }));
+    acts.appendChild(bouton("+1 sem.", "mini", function(){ reporter(h, 7); }));
+    var edit = document.createElement("div"); edit.className = "edit";
+    acts.appendChild(bouton("✎", "mini", function(){
+      edit.style.display = edit.style.display === "flex" ? "none" : "flex";
+    }));
+    var carteLien = document.createElement("a");
+    carteLien.className = "mini"; carteLien.href = "tournee.html#maison=" + encodeURIComponent(h.id);
+    carteLien.textContent = "🗺️";
+    carteLien.title = "Ouvrir cette maison sur la carte";
+    acts.appendChild(carteLien);
+    c.appendChild(acts);
+
+    // --- correction sur place : on est au téléphone, l'info se précise
+    [["prenom","Prénom","text"], ["tel","Téléphone","tel"],
+     ["prix","Prix payé","text"], ["note","Note","text"]].forEach(function(f){
+      var l = document.createElement("div"); l.className = "lab"; l.textContent = f[1];
+      var i = document.createElement("input");
+      i.type = f[2]; i.value = h[f[0]] || "";
+      if (f[0] === "prix") i.inputMode = "decimal";
+      i.disabled = lectureSeule;
+      i.addEventListener("input", function(){
+        h[f[0]] = i.value.trim() || null; sauver();
+      });
+      edit.appendChild(l); edit.appendChild(i);
+    });
+    var lq = document.createElement("div"); lq.className = "lab";
+    lq.textContent = "Rappeler le";
+    var iq = document.createElement("input");
+    iq.type = "datetime-local"; iq.value = h.rappelAt || "";
+    iq.disabled = lectureSeule;
+    iq.addEventListener("input", function(){
+      h.rappelAt = iq.value || null; sauver(); rendre();
+    });
+    edit.appendChild(lq); edit.appendChild(iq);
+    c.appendChild(edit);
+    return c;
+  }
+
+  function bouton(txt, cls, fn){
+    var b = document.createElement("button");
+    b.className = cls; b.textContent = txt;
+    if (lectureSeule && cls !== "mini") b.disabled = true;
+    b.addEventListener("click", fn);
+    return b;
+  }
+
+  function changerStatut(h, k){
+    if (lectureSeule) return;
+    lastUndo = {h: h, status: h.status, statusTs: h.statusTs};
+    h.status = k; h.statusTs = Date.now();
+    sauver(); rendre();
+    toast("→ " + STATUSES[k].label, "Annuler", function(){
+      lastUndo.h.status = lastUndo.status;
+      lastUndo.h.statusTs = lastUndo.statusTs;
+      sauver(); rendre();
+    });
+  }
+  function reporter(h, jours){
+    if (lectureSeule) return;
+    // On repousse depuis la date prévue si elle est encore devant, sinon depuis
+    // maintenant : reporter un rappel oublié depuis trois semaines doit le
+    // ramener dans les jours qui viennent, pas le laisser dans le passé.
+    var ts = tsDe(h.rappelAt), futur = ts != null && ts > Date.now();
+    var base = futur ? new Date(ts) : new Date();
+    base.setDate(base.getDate() + jours);
+    if (!futur) base.setHours(18, 0, 0, 0);
+    h.rappelAt = dateLocale(base);
+    sauver(); rendre();
+    toast("Reporté à " + quandTexte(tsDe(h.rappelAt)));
+  }
+
+  function rendre(){
+    var liste = document.getElementById("liste");
+    liste.innerHTML = "";
+    var fs = fiches();
+    var aTraiter = fs.filter(function(h){
+      var g = groupeDe(tsDe(h.rappelAt)); return g === "retard" || g === "auj";
+    }).length;
+    document.getElementById("compte").textContent =
+      fs.length + (fs.length > 1 ? " fiches" : " fiche") +
+      (aTraiter ? " · " + aTraiter + " à traiter" : "");
+    document.title = (aTraiter ? "(" + aTraiter + ") " : "") + "Mes rappels — MohaBanger2ouf";
+
+    renderChips();
+
+    if (!fs.length){ liste.appendChild(vide()); return; }
+    GROUPES.forEach(function(g){
+      var dedans = fs.filter(function(h){ return groupeDe(tsDe(h.rappelAt)) === g.k; });
+      if (!dedans.length) return;
+      var t = document.createElement("h3");
+      t.className = "grp" + (g.k === "retard" ? " retard" : "");
+      t.innerHTML = g.titre + " <b>" + dedans.length + "</b>";
+      liste.appendChild(t);
+      dedans.forEach(function(h){ liste.appendChild(carte(h)); });
+    });
+  }
+
+  function renderChips(){
+    var c = document.getElementById("chips"); c.innerHTML = "";
+    var nRepasser = data.houses.filter(function(h){ return h.status === "repasser"; }).length;
+    if (nRepasser){
+      var b = document.createElement("button");
+      b.className = "chip" + (voirRepasser ? " active" : "");
+      b.innerHTML = "<span class='dot' style='background:" + STATUSES.repasser.color +
+                    "'></span>À repasser " + nRepasser;
+      b.title = "Les maisons à revoir sur place, pas au téléphone";
+      b.addEventListener("click", function(){ voirRepasser = !voirRepasser; rendre(); });
+      c.appendChild(b);
+    }
+    var villes = {};
+    data.houses.forEach(function(h){
+      if (h.status === "rappel" || h.status === "repasser")
+        villes[h.cityId] = (villes[h.cityId] || 0) + 1;
+    });
+    var noms = Object.keys(villes);
+    if (noms.length > 1){
+      var s = document.createElement("select"); s.className = "chip";
+      var o0 = document.createElement("option");
+      o0.value = ""; o0.textContent = "Toutes les villes";
+      s.appendChild(o0);
+      noms.forEach(function(id){
+        var cc = data.cities.find(function(x){ return x.id === id; });
+        var o = document.createElement("option");
+        o.value = id; o.textContent = (cc ? cc.name : "?") + " (" + villes[id] + ")";
+        if (ville === id) o.selected = true;
+        s.appendChild(o);
+      });
+      s.addEventListener("change", function(){ ville = s.value; rendre(); });
+      c.appendChild(s);
+    }
+    var imp = document.createElement("button");
+    imp.className = "chip";
+    imp.textContent = lectureSeule ? "↩ Revenir à mes données" : "⬆ Ouvrir une sauvegarde";
+    imp.addEventListener("click", function(){
+      if (lectureSeule){ lectureSeule = false; charger().then(rendre); return; }
+      document.getElementById("fileInput").click();
+    });
+    c.appendChild(imp);
+  }
+
+  function vide(){
+    var d = document.createElement("div"); d.className = "vide";
+    if (mode === "memory"){
+      d.innerHTML = "<b>Ce navigateur ne garde rien.</b><br>" +
+        "Ouvert directement depuis un fichier, il refuse la mémoire locale. " +
+        "Ouvre le site en ligne — c'est aussi ce qu'il faut pour le GPS de la tournée.";
+      return d;
+    }
+    var total = data.houses.filter(function(h){ return h.status === "rappel"; }).length;
+    if (total && (recherche || ville)){
+      d.innerHTML = "Aucune fiche ne correspond à cette recherche. " +
+        "<b>" + total + "</b> rappels au total.";
+      return d;
+    }
+    d.innerHTML = "<b>Aucun rappel pour l'instant.</b><br>" +
+      "Sur le terrain, tamponne une maison <b>Rappel</b> : la bulle s'ouvre sur un " +
+      "dossier — prénom, téléphone, prix payé, et quand rappeler. Tout ce que tu y " +
+      "notes se retrouve ici, trié par date.<br>" +
+      "<a class='bigBtn' href='tournee.html'>🏠 Aller sur la tournée</a>";
+    return d;
+  }
+
+  // ---------- Sauvegarde ouverte depuis un fichier (lecture seule) ----------
+  // Le cas du vendeur qui prospecte sur son téléphone et rappelle depuis son
+  // ordinateur : la mémoire du navigateur ne traverse pas les appareils. On lit
+  // alors sa sauvegarde sans jamais l'écrire ici, pour ne pas créer un second
+  // exemplaire des données qui divergerait du premier.
+  document.getElementById("fileInput").addEventListener("change", function(){
+    var f = this.files && this.files[0];
+    this.value = "";
+    if (!f) return;
+    var r = new FileReader();
+    r.onload = function(){
+      try{
+        var p = JSON.parse(r.result);
+        if (!p || !Array.isArray(p.cities) || !Array.isArray(p.houses)) throw 0;
+        data = p; lectureSeule = true; ville = "";
+        setSave("👁 lecture seule");
+        rendre();
+        toast("Sauvegarde ouverte en lecture seule — rien ne sera modifié.");
+      }catch(e){
+        toast("Fichier illisible : il faut une sauvegarde .json de la tournée.");
+      }
+    };
+    r.readAsText(f);
+  });
+
+  // ---------- Divers ----------
+  var toastTimer = null;
+  function toast(msg, btnLabel, btnAction){
+    var t = document.getElementById("toast"), b = document.getElementById("toastBtn");
+    document.getElementById("toastMsg").textContent = msg;
+    b.style.display = btnLabel ? "" : "none";
+    b.textContent = btnLabel || "";
+    b.onclick = function(){ t.style.display = "none"; if (btnAction) btnAction(); };
+    t.style.display = "flex";
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.style.display = "none"; }, 4200);
+  }
+
+  var qTimer = null;
+  document.getElementById("q").addEventListener("input", function(){
+    var v = this.value.trim().toLowerCase();
+    clearTimeout(qTimer);
+    qTimer = setTimeout(function(){ recherche = v; rendre(); }, 120);
+  });
+
+  // La tournée ouverte dans un autre onglet vient d'écrire : on se remet à jour
+  // plutôt que d'afficher une liste périmée.
+  window.addEventListener("storage", function(e){
+    if (e.key === KEY && !lectureSeule) charger().then(rendre);
+  });
+
+  charger().then(rendre);
+})();
+</script>
+</body>
+</html>

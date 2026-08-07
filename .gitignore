@@ -2,3 +2,18 @@
 LISEZ-MOI.md
 __pycache__/
 _cache/
+
+# Ce dépôt ne porte que le site : les pages, les points par commune et les
+# relevés opérateur qu'elles lisent. Les outils qui les fabriquent vivent à
+# côté, dans « carte fibre », et n'ont rien à faire en ligne. Ces règles sont
+# là pour qu'un « git add -A » distrait ne les y remette pas.
+outils/
+*.py
+*.csv
+*.csv.gz
+
+# La carte personnelle porte le calendrier commercial de Bouygues. Elle est
+# construite dans « carte fibre », hors dépôt, et build_carte.py refuse de
+# l'écrire ici — cette ligne est la troisième barrière, au cas où.
+fibre-perso.html
+*-perso.html

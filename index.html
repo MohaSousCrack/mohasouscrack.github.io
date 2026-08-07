@@ -8,7 +8,7 @@
   :root{
     --ink:#14161B; --ink-2:#20242C; --line:#343A45;
     --paper:#FFFFFF; --muted:#9AA3B0;
-    --signe:#1FA45B; --free:#E1000F; --route:#2A7FFF;
+    --signe:#1FA45B; --free:#E1000F; --route:#2A7FFF; --rappel:#12A5BF;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;padding:0;min-height:100%}
@@ -26,8 +26,10 @@
   .baseline b{color:var(--signe)}
   .intro{margin:12px 0 0;font-size:14.5px;line-height:1.6;color:var(--muted);max-width:56ch}
 
-  .cards{display:grid;gap:14px;grid-template-columns:1fr 1fr}
+  .cards{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(212px,1fr))}
   @media (max-width:640px){ .cards{grid-template-columns:1fr} header{padding:28px 0 20px} .baseline{font-size:22px} }
+  .card .etape{font-size:10px;font-weight:800;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--muted)}
 
   .card{
     display:flex;flex-direction:column;gap:9px;
@@ -43,6 +45,7 @@
   .card .go{margin-top:10px;font-size:13px;font-weight:700;color:var(--paper)}
   .card.tournee{border-left:3px solid var(--signe)}
   .card.fibre{border-left:3px solid var(--route)}
+  .card.notes{border-left:3px solid var(--rappel)}
 
   .duo{
     margin-top:18px;background:var(--ink-2);border:1px solid var(--line);
@@ -65,15 +68,29 @@
 
   <header>
     <h1>MohaBanger2ouf</h1>
-    <p class="baseline">Deux outils pour la prospection fibre :<br>savoir <b>où aller</b>, et <b>ne rien oublier</b> sur place.</p>
+    <p class="baseline">Trois outils pour la prospection fibre :<br>savoir <b>où aller</b>, <b>ne rien oublier</b> sur place,<br>et <b>rappeler les bons foyers</b> le soir.</p>
     <p class="intro">Tout tourne dans le navigateur, rien n'est envoyé sur un serveur.
       Fonctionne sur téléphone comme sur ordinateur.</p>
   </header>
 
   <div class="cards">
 
+    <a class="card fibre" href="fibre.html">
+      <span class="pic">🗺️</span>
+      <span class="etape">Avant de partir</span>
+      <h2>Carte fibre</h2>
+      <p>Où la fibre est posée en Bretagne, et surtout <b>quel opérateur la commercialise</b>, commune par commune.</p>
+      <ul>
+        <li>1 526 communes, données Arcep à l'adresse</li>
+        <li>Free, Orange, Bouygues, SFR comparés</li>
+        <li>Temps de trajet depuis Rennes, voiture ou train</li>
+      </ul>
+      <span class="go">Ouvrir la carte fibre →</span>
+    </a>
+
     <a class="card tournee" href="tournee.html">
       <span class="pic">🏠</span>
+      <span class="etape">Sur le terrain</span>
       <h2>Ma tournée</h2>
       <p>Le porte-à-porte sur la carte : chaque maison de la commune, sa couleur, son opérateur, sa note.</p>
       <ul>
@@ -85,26 +102,31 @@
       <span class="go">Ouvrir ma tournée →</span>
     </a>
 
-    <a class="card fibre" href="fibre.html">
-      <span class="pic">🗺️</span>
-      <h2>Carte fibre</h2>
-      <p>Où la fibre est posée en Bretagne, et surtout <b>quel opérateur la commercialise</b>, commune par commune.</p>
+    <a class="card notes" href="notes.html">
+      <span class="pic">📓</span>
+      <span class="etape">Le soir, chez soi</span>
+      <h2>Mes rappels</h2>
+      <p>Les foyers qui ont demandé qu'on les rappelle, <b>triés par date</b>, le numéro à portée de pouce.</p>
       <ul>
-        <li>1 526 communes, données Arcep à l'adresse</li>
-        <li>Free, Orange, Bouygues, SFR comparés</li>
-        <li>Temps de trajet depuis Rennes, voiture ou train</li>
+        <li>Prénom, téléphone, prix payé, opérateur actuel</li>
+        <li>En retard, aujourd'hui, demain</li>
+        <li>Signé ou refus d'un appui, report en un autre</li>
       </ul>
-      <span class="go">Ouvrir la carte fibre →</span>
+      <span class="go">Ouvrir mes rappels →</span>
     </a>
 
   </div>
 
   <div class="duo">
-    <h3>Les deux ensemble</h3>
+    <h3>Les trois ensemble</h3>
     Sur la <b>carte fibre</b>, ouvre une commune et clique <b>« Prospecter cette commune »</b> :
     elle s'ajoute directement dans <b>ma tournée</b>, au bon endroit, prête à charger ses maisons.
     Dans l'autre sens, le menu ville de la tournée renvoie vers la fiche fibre de la commune active —
     pratique pour savoir quel opérateur passe avant de sonner.
+    <br><br>
+    Sur le pas de la porte, le tampon <b>Rappel</b> ouvre un petit dossier : prénom, numéro,
+    ce que le foyer paie aujourd'hui et quand le rappeler. Le soir, <b>mes rappels</b> les
+    reprend tous, toutes villes confondues, du plus urgent au plus lointain.
   </div>
 
   <footer>
