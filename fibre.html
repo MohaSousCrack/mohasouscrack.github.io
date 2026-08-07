@@ -857,6 +857,13 @@ td .neuf.orange { background: var(--serious); }
 td .neuf.vert { background: var(--good); color: #fff; }
 
 .empty { padding: 26px 16px; color: var(--muted); font-size: 13px; }
+/* Dit pourquoi la carte est grise, quand elle l'est pour une bonne raison. */
+.piege { margin-top: 10px; background: var(--serious); color: #14161B;
+         border-radius: 9px; padding: 9px 12px; font-size: 13px; line-height: 1.5;
+         font-weight: 600; }
+.piege button { margin-left: 8px; border: 1px solid #14161B; background: transparent;
+                color: #14161B; border-radius: 7px; padding: 4px 9px; font-size: 12px;
+                font-weight: 700; cursor: pointer; }
 
 /* fiche commune */
 #detail { display: none; }
@@ -1017,6 +1024,7 @@ footer code { font-size: 10.5px; color: var(--ink-2);
     <div><span class="v" id="h-ecart">—</span><span class="k">concernées</span></div>
     <div><span class="v" id="h-adr">—</span><span class="k">adresses</span></div>
   </div>
+  <div class="piege" id="piege" hidden></div>
 </header>
 
 <div class="toolbar" id="toolbar">
@@ -1413,6 +1421,25 @@ function majHero() {
   el("h-adr").textContent = nf.format(adr);
   el("mstats").innerHTML = `<b>${nf.format(visibles.length)}</b> communes · ` +
                            `<b>${nf.format(adr)}</b> adresses correspondantes`;
+
+  /* Le piège : quand la combinaison demandée ne concerne aucune adresse, la
+     mesure vaut zéro partout. La carte devient uniformément grise et le
+     tableau, lui, continue d'afficher des communes — on cherche l'erreur sans
+     la trouver. Barrer les quatre opérateurs avec « tous les barrés absents »
+     revient par exemple à demander les adresses que personne ne dessert. */
+  const piege = el("piege");
+  /* Le symptôme est le même que la liste soit vide ou non : la mesure vaut zéro
+     partout, donc tout est gris. C'est là-dessus qu'on déclenche. */
+  const nul = adr === 0;
+  piege.hidden = !nul;
+  if (nul) {
+    const tous = OPERATEURS.every(o => etats[o.bit] === ABSENT);
+    piege.innerHTML = (tous && el("combi").value === "et"
+      ? `Vous demandez les adresses où <b>aucun des quatre</b> opérateurs ne passe. `
+      : `La combinaison d'opérateurs demandée ne concerne <b>aucune adresse</b>. `) +
+      `La carte est grise pour cette raison, pas par erreur. ` +
+      `<button onclick="el('raz').click()">Revenir au réglage de départ</button>`;
+  }
 }
 
 function majListe() {
