@@ -9,6 +9,7 @@
     --ink:#14161B; --ink-2:#20242C; --line:#343A45;
     --paper:#FFFFFF; --muted:#9AA3B0;
     --signe:#1FA45B; --free:#E1000F; --route:#2A7FFF; --rappel:#12A5BF;
+    --absent:#F2A31B;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;padding:0;min-height:100%}
@@ -46,6 +47,7 @@
   .card.tournee{border-left:3px solid var(--signe)}
   .card.fibre{border-left:3px solid var(--route)}
   .card.notes{border-left:3px solid var(--rappel)}
+  .card.comparateur{border-left:3px solid var(--absent)}
 
   .duo{
     margin-top:18px;background:var(--ink-2);border:1px solid var(--line);
@@ -68,12 +70,25 @@
 
   <header>
     <h1>MohaBanger2ouf</h1>
-    <p class="baseline">Trois outils pour la prospection fibre :<br>savoir <b>où aller</b>, <b>ne rien oublier</b> sur place,<br>et <b>rappeler les bons foyers</b> le soir.</p>
+    <p class="baseline">Quatre outils pour la prospection fibre :<br><b>choisir la commune</b>, savoir <b>où aller</b>,<br><b>ne rien oublier</b> sur place, et <b>rappeler</b> le soir.</p>
     <p class="intro">Tout tourne dans le navigateur, rien n'est envoyé sur un serveur.
       Fonctionne sur téléphone comme sur ordinateur.</p>
   </header>
 
   <div class="cards">
+
+    <a class="card comparateur" href="comparateur.html">
+      <span class="pic">🎯</span>
+      <span class="etape">Choisir la commune</span>
+      <h2>Où aller prospecter ?</h2>
+      <p>Les communes <b>classées</b>, pas coloriées : le nombre d'adresses où il manque un opérateur, rapporté au trajet.</p>
+      <ul>
+        <li>Le détail : une manquante, deux, ou Free seul</li>
+        <li>Les manques non vérifiés ne comptent pas</li>
+        <li>Temps de trajet depuis Rennes intégré au classement</li>
+      </ul>
+      <span class="go">Ouvrir le comparateur →</span>
+    </a>
 
     <a class="card fibre" href="fibre.html">
       <span class="pic">🗺️</span>
@@ -118,7 +133,11 @@
   </div>
 
   <div class="duo">
-    <h3>Les trois ensemble</h3>
+    <h3>Les quatre ensemble</h3>
+    Le <b>comparateur</b> répond à « laquelle vaut le déplacement » ; la <b>carte fibre</b>
+    à « à quoi ressemble le terrain ». Commence par le classement, vérifie la commune
+    sur la carte, puis pars.
+    <br><br>
     Sur la <b>carte fibre</b>, ouvre une commune et clique <b>« Prospecter cette commune »</b> :
     elle s'ajoute directement dans <b>ma tournée</b>, au bon endroit, prête à charger ses maisons.
     Dans l'autre sens, le menu ville de la tournée renvoie vers la fiche fibre de la commune active —
