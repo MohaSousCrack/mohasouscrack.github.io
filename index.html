@@ -5,74 +5,104 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>MohaBanger2ouf — les outils de la prospection fibre</title>
 <style>
+  /* Mêmes jetons que les autres pages : une rampe de gris, des rôles, puis les
+     composants. Aucun composant n'écrit une couleur en dur. */
   :root{
-    --ink:#14161B; --ink-2:#20242C; --line:#343A45;
-    --paper:#FFFFFF; --muted:#9AA3B0;
-    --signe:#1FA45B; --free:#E1000F; --route:#2A7FFF; --rappel:#12A5BF;
-    --absent:#F2A31B;
+    --n0:#07090C; --n1:#0C0F14; --n2:#12161D; --n3:#171C25;
+    --n4:#1F2530; --n5:#2A313E; --n7:#5A6577; --n8:#8A93A3; --n10:#FFFFFF;
+    --bleu:#3B82F6; --vert:#22C55E; --ambre:#F59E0B; --cyan:#22B8CF;
+
+    --fond:var(--n0); --surface:var(--n2); --surface-2:var(--n3);
+    --bord:var(--n4); --bord-net:var(--n5);
+    --texte:var(--n10); --doux:var(--n8); --faible:var(--n7);
+    --r1:8px; --r3:18px;
+    --ombre:0 1px 2px rgba(0,0,0,.5), 0 16px 40px -22px rgba(0,0,0,1);
+    --vite:140ms cubic-bezier(.2,.6,.3,1);
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html{-webkit-text-size-adjust:100%}
   html,body{margin:0;padding:0;min-height:100%}
   body{
-    background:var(--ink);color:var(--paper);
+    background:var(--fond);color:var(--texte);
     font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    font-size:15px;line-height:1.5;letter-spacing:-.005em;-webkit-font-smoothing:antialiased;
     display:flex;flex-direction:column;min-height:100vh;
-    padding:0 16px calc(24px + env(safe-area-inset-bottom));
+    padding:0 18px calc(32px + env(safe-area-inset-bottom));
   }
-  .wrap{width:100%;max-width:760px;margin:0 auto;flex:1;display:flex;flex-direction:column}
+  .wrap{width:100%;max-width:960px;margin:0 auto;flex:1;display:flex;flex-direction:column}
+  /* Une lueur discrète en haut : assez pour que ce ne soit pas un fond noir
+     plat, assez peu pour que ça reste un outil. */
+  body::before{content:"";position:fixed;inset:0 0 auto;height:420px;pointer-events:none;
+    background:radial-gradient(70% 100% at 20% 0%, rgba(59,130,246,.10), transparent 70%),
+               radial-gradient(50% 90% at 85% 0%, rgba(34,197,94,.07), transparent 70%)}
 
-  header{padding:40px 0 26px}
-  h1{margin:0;font-size:13px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
-  .baseline{margin:14px 0 0;font-size:26px;font-weight:800;line-height:1.25;letter-spacing:-.01em}
-  .baseline b{color:var(--signe)}
-  .intro{margin:12px 0 0;font-size:14.5px;line-height:1.6;color:var(--muted);max-width:56ch}
+  header{padding:52px 0 30px;position:relative}
+  .marque{display:inline-flex;align-items:center;gap:8px;font-size:11.5px;font-weight:800;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--faible)}
+  .marque i{width:7px;height:7px;border-radius:50%;background:var(--vert);
+    box-shadow:0 0 0 4px rgba(34,197,94,.15)}
+  h1{margin:18px 0 0;font-size:clamp(27px,5.4vw,42px);font-weight:800;
+    line-height:1.12;letter-spacing:-.035em;max-width:19ch}
+  h1 em{font-style:normal;color:var(--vert)}
+  .intro{margin:16px 0 0;font-size:15px;line-height:1.65;color:var(--doux);max-width:56ch}
 
-  .cards{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(212px,1fr))}
-  @media (max-width:640px){ .cards{grid-template-columns:1fr} header{padding:28px 0 20px} .baseline{font-size:22px} }
-  .card .etape{font-size:10px;font-weight:800;letter-spacing:.14em;
-    text-transform:uppercase;color:var(--muted)}
-
-  .card{
-    display:flex;flex-direction:column;gap:9px;
-    background:var(--ink-2);border:1px solid var(--line);border-radius:16px;
+  .cards{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(232px,1fr))}
+  .card{position:relative;display:flex;flex-direction:column;gap:8px;overflow:hidden;
+    background:var(--surface);border:1px solid var(--bord);border-radius:var(--r3);
     padding:20px;color:inherit;text-decoration:none;
-    transition:border-color .15s, transform .15s;
-  }
-  .card:hover,.card:focus-visible{border-color:var(--paper);transform:translateY(-2px)}
-  .card .pic{font-size:30px;line-height:1}
-  .card h2{margin:2px 0 0;font-size:18px;font-weight:800;letter-spacing:-.01em}
-  .card p{margin:0;font-size:13.5px;line-height:1.55;color:var(--muted);flex:1}
-  .card ul{margin:2px 0 0;padding-left:17px;font-size:12.5px;line-height:1.7;color:var(--muted)}
-  .card .go{margin-top:10px;font-size:13px;font-weight:700;color:var(--paper)}
-  .card.tournee{border-left:3px solid var(--signe)}
-  .card.fibre{border-left:3px solid var(--route)}
-  .card.notes{border-left:3px solid var(--rappel)}
-  .card.comparateur{border-left:3px solid var(--absent)}
+    transition:border-color var(--vite),transform var(--vite),box-shadow var(--vite)}
+  .card::after{content:"";position:absolute;left:0;right:0;top:0;height:2px;
+    background:var(--tint);opacity:.85}
+  .card:hover,.card:focus-visible{border-color:var(--bord-net);transform:translateY(-3px);
+    box-shadow:var(--ombre)}
+  .card .pic{font-size:26px;line-height:1}
+  .card .etape{font-size:10px;font-weight:800;letter-spacing:.13em;
+    text-transform:uppercase;color:var(--tint)}
+  .card h2{margin:1px 0 0;font-size:19px;font-weight:800;letter-spacing:-.025em}
+  .card p{margin:0;font-size:13.5px;line-height:1.6;color:var(--doux);flex:1}
+  .card ul{margin:4px 0 0;padding-left:16px;font-size:12.5px;line-height:1.75;color:var(--faible)}
+  .card .go{margin-top:12px;font-size:13px;font-weight:700;color:var(--texte);
+    display:inline-flex;align-items:center;gap:6px}
+  .card .go i{font-style:normal;transition:transform var(--vite)}
+  .card:hover .go i{transform:translateX(3px)}
+  .card.comparateur{--tint:var(--ambre)}
+  .card.fibre{--tint:var(--bleu)}
+  .card.tournee{--tint:var(--vert)}
+  .card.notes{--tint:var(--cyan)}
 
-  .duo{
-    margin-top:18px;background:var(--ink-2);border:1px solid var(--line);
-    border-radius:14px;padding:16px 18px;font-size:13.5px;line-height:1.65;color:var(--muted)
-  }
-  .duo b{color:var(--paper)}
-  .duo h3{margin:0 0 8px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:700}
+  .duo{margin-top:14px;background:var(--surface);border:1px solid var(--bord);
+    border-radius:var(--r3);padding:20px;font-size:13.5px;line-height:1.7;color:var(--doux)}
+  .duo b{color:var(--texte);font-weight:650}
+  .duo h3{margin:0 0 12px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--faible);font-weight:800}
+  .duo p{margin:0 0 12px}
+  .duo p:last-child{margin-bottom:0}
 
-  footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);
-         font-size:12px;line-height:1.7;color:var(--muted)}
-  footer a{color:var(--paper)}
-  .tip{display:inline-block;margin-top:12px;background:#274a2f;border:1px solid #2f6b3f;
-       border-radius:10px;padding:9px 14px;font-size:13px;font-weight:700;
-       color:var(--paper);text-decoration:none}
-  a:focus-visible,.card:focus-visible{outline:2px solid #fff;outline-offset:2px}
+  footer{margin-top:30px;padding-top:18px;border-top:1px solid var(--bord);
+         font-size:12px;line-height:1.75;color:var(--faible)}
+  .tip{display:inline-block;margin-top:14px;background:var(--surface-2);
+    border:1px solid var(--bord);border-radius:var(--r1);padding:9px 14px;font-size:12.5px;
+    font-weight:700;color:var(--texte);text-decoration:none;transition:border-color var(--vite)}
+  .tip:hover{border-color:var(--bord-net)}
+  a:focus-visible,.card:focus-visible{outline:2px solid var(--bleu);outline-offset:3px}
+  @media (max-width:640px){
+    body{padding:0 14px 32px}
+    header{padding:34px 0 22px}
+    .cards{grid-template-columns:1fr}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
 <div class="wrap">
 
   <header>
-    <h1>MohaBanger2ouf</h1>
-    <p class="baseline">Quatre outils pour la prospection fibre :<br><b>choisir la commune</b>, savoir <b>où aller</b>,<br><b>ne rien oublier</b> sur place, et <b>rappeler</b> le soir.</p>
-    <p class="intro">Tout tourne dans le navigateur, rien n'est envoyé sur un serveur.
-      Fonctionne sur téléphone comme sur ordinateur.</p>
+    <span class="marque"><i></i>MohaBanger2ouf</span>
+    <h1>Les outils de la <em>prospection fibre</em>.</h1>
+    <p class="intro">Choisir la commune, savoir où la fibre passe, ne rien oublier
+      sur le pas de la porte, rappeler le soir. Tout tourne dans le navigateur :
+      rien n'est envoyé sur un serveur, et ça marche sur téléphone comme sur
+      ordinateur.</p>
   </header>
 
   <div class="cards">
@@ -81,13 +111,14 @@
       <span class="pic">🎯</span>
       <span class="etape">Choisir la commune</span>
       <h2>Où aller prospecter ?</h2>
-      <p>Les communes <b>classées</b>, pas coloriées : le nombre d'adresses où il manque un opérateur, rapporté au trajet.</p>
+      <p>Les communes <b>classées</b>, pas coloriées : les prises que SFR ne
+        dessert pas, rapportées au temps de trajet.</p>
       <ul>
-        <li>Le détail : une manquante, deux, ou Free seul</li>
+        <li>Ville de départ au choix, partout en Bretagne</li>
         <li>Les manques non vérifiés ne comptent pas</li>
-        <li>Temps de trajet depuis Rennes intégré au classement</li>
+        <li>1 526 communes, de la plus rentable à la moins</li>
       </ul>
-      <span class="go">Ouvrir le comparateur →</span>
+      <span class="go">Ouvrir le comparateur <i>→</i></span>
     </a>
 
     <a class="card fibre" href="fibre.html">
@@ -100,7 +131,7 @@
         <li>Free, Orange, Bouygues, SFR comparés</li>
         <li>Temps de trajet depuis Rennes, voiture ou train</li>
       </ul>
-      <span class="go">Ouvrir la carte fibre →</span>
+      <span class="go">Ouvrir la carte fibre <i>→</i></span>
     </a>
 
     <a class="card tournee" href="tournee.html">
@@ -114,7 +145,7 @@
         <li>Signé, refus, absent, rappel, à repasser</li>
         <li>Lasso, liste de repasse, suivi GPS</li>
       </ul>
-      <span class="go">Ouvrir ma tournée →</span>
+      <span class="go">Ouvrir ma tournée <i>→</i></span>
     </a>
 
     <a class="card notes" href="notes.html">
@@ -127,25 +158,24 @@
         <li>En retard, aujourd'hui, demain</li>
         <li>Signé ou refus d'un appui, report en un autre</li>
       </ul>
-      <span class="go">Ouvrir mes rappels →</span>
+      <span class="go">Ouvrir mes rappels <i>→</i></span>
     </a>
 
   </div>
 
   <div class="duo">
     <h3>Les quatre ensemble</h3>
-    Le <b>comparateur</b> répond à « laquelle vaut le déplacement » ; la <b>carte fibre</b>
-    à « à quoi ressemble le terrain ». Commence par le classement, vérifie la commune
-    sur la carte, puis pars.
-    <br><br>
-    Sur la <b>carte fibre</b>, ouvre une commune et clique <b>« Prospecter cette commune »</b> :
-    elle s'ajoute directement dans <b>ma tournée</b>, au bon endroit, prête à charger ses maisons.
-    Dans l'autre sens, le menu ville de la tournée renvoie vers la fiche fibre de la commune active —
-    pratique pour savoir quel opérateur passe avant de sonner.
-    <br><br>
-    Sur le pas de la porte, le tampon <b>Rappel</b> ouvre un petit dossier : prénom, numéro,
-    ce que le foyer paie aujourd'hui et quand le rappeler. Le soir, <b>mes rappels</b> les
-    reprend tous, toutes villes confondues, du plus urgent au plus lointain.
+    <p>Le <b>comparateur</b> répond à « laquelle vaut le déplacement » ; la
+      <b>carte fibre</b> à « à quoi ressemble le terrain ». Commence par le
+      classement, vérifie la commune sur la carte, puis pars.</p>
+    <p>Sur la carte, ouvre une commune et clique <b>« Prospecter cette commune »</b> :
+      elle s'ajoute dans <b>ma tournée</b>, au bon endroit, prête à charger ses
+      maisons. Dans l'autre sens, le menu ville renvoie vers la fiche fibre de la
+      commune active — pratique pour savoir qui passe avant de sonner.</p>
+    <p>Sur le pas de la porte, le tampon <b>Rappel</b> ouvre un petit dossier :
+      prénom, numéro, ce que le foyer paie aujourd'hui, quand le rappeler. Le soir,
+      <b>mes rappels</b> les reprend tous, toutes villes confondues, du plus urgent
+      au plus lointain.</p>
   </div>
 
   <footer>

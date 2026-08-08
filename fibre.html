@@ -720,10 +720,13 @@ svg.leaflet-image-layer.leaflet-interactive path {
 html, body { height: 100%; overflow: hidden; }
 body {
   margin: 0; background: var(--plane); color: var(--ink);
-  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  letter-spacing: -.005em; -webkit-font-smoothing: antialiased;
   display: flex; flex-direction: column;
 }
-h1 { font-size: 15px; margin: 0; letter-spacing: -.01em; }
+h1 { font-size: 15px; margin: 0; letter-spacing: -.022em; font-weight: 700; }
+/* Les chiffres sont partout comparés entre eux : ils doivent s'aligner. */
+.v, .pc, td, .hero, .num { font-variant-numeric: tabular-nums; }
 a { color: var(--series-1); }
 
 /* ---------- en-tête ---------- */
@@ -779,20 +782,31 @@ header {
 .toolbar label { font-size: 12px; color: var(--ink-2); display: flex;
                  align-items: center; gap: 7px; white-space: nowrap; }
 select, input[type=search] {
-  font: inherit; font-size: 13px; color: var(--ink);
+  font: inherit; font-size: 13px; font-weight: 600; color: var(--ink);
   background: var(--surface-1); border: 1px solid var(--axis);
-  border-radius: 7px; padding: 5px 8px; max-width: 260px;
+  border-radius: 9px; padding: 6px 9px; max-width: 260px;
+  transition: border-color 130ms cubic-bezier(.2,.6,.3,1);
+}
+select:hover, input[type=search]:hover { border-color: var(--muted); }
+select:focus-visible, input:focus-visible {
+  outline: none; border-color: var(--series-1);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--series-1) 22%, transparent);
 }
 input[type=range] { accent-color: var(--series-1); width: 104px; }
 input[type=checkbox] { accent-color: var(--series-1); width: 15px; height: 15px; }
 .val { font-variant-numeric: tabular-nums; color: var(--ink);
-       font-weight: 600; min-width: 54px; }
+       font-weight: 700; min-width: 54px; }
 button {
-  font: inherit; font-size: 12px; color: var(--ink-2); cursor: pointer;
-  background: var(--surface-1); border: 1px solid var(--axis);
-  border-radius: 7px; padding: 5px 10px;
+  font: inherit; font-size: 12px; font-weight: 600; color: var(--ink-2);
+  cursor: pointer; background: var(--surface-1); border: 1px solid var(--axis);
+  border-radius: 9px; padding: 6px 11px;
+  transition: color 130ms cubic-bezier(.2,.6,.3,1),
+              border-color 130ms cubic-bezier(.2,.6,.3,1),
+              transform 130ms cubic-bezier(.2,.6,.3,1);
 }
 button:hover { color: var(--ink); border-color: var(--muted); }
+button:active { transform: scale(.97); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 
 /* ---------- corps ---------- */
 .app { flex: 1 1 auto; display: flex; min-height: 0; }
@@ -1123,7 +1137,7 @@ const SITE = true;
 
 /* Le site est statique : ces dates sont figées à la génération, il ne se met
    pas à jour tout seul. Relancer les scripts les rafraîchit. */
-const MAJ = {"arcep": "2026 T1", "genere": "2026-08-07"};
+const MAJ = {"arcep": "2026 T1", "genere": "2026-08-08"};
 /* index code INSEE -> propriétés, utilisé à chaque redessin */
 const parCode = new Map(F.map(f => [f.properties.c, f.properties]));
 
