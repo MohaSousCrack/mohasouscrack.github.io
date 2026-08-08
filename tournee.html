@@ -405,6 +405,13 @@
   // « avoir » n'est plus un tampon : c'est l'état gris des maisons pas encore
   // visitées, celui de toutes les maisons au chargement.
   var NEUF = "avoir";
+  // Les deux statuts qui ouvrent un dossier : on y reviendra, par téléphone ou
+  // en personne. Dans les deux cas on veut le prénom, ce que le foyer paie et
+  // chez qui — et une date pour ne pas l'oublier.
+  var SUIVIS = {
+    rappel:   { titre: "À rappeler",  quand: "Quand rappeler",  verbe: "Rappeler" },
+    repasser: { titre: "À repasser",  quand: "Quand repasser",  verbe: "Repasser chez" }
+  };
   var ORDER = ["signe","refus","absent","rappel","repasser"];
   var OPS = {
     free:     {label:"Free",     color:"#E1000F"},
@@ -419,7 +426,8 @@
   var data = { cities: [], houses: [], activeCityId: null };
   var selected = "signe";
   var filter = null;
-  var fibreFilter = false;      // n'afficher que les « Free devance »
+  // 0 = tout, 2 = seulement « sans SFR », 1 = seulement « sans Bouygues ».
+  var fibreFilter = 0;
   var lastUndo = null;
   var mePos = null, placingMe = false;
   var markersById = {};
@@ -611,7 +619,9 @@
     layer.clearLayers(); markersById = {};
     cityHouses().forEach(function(h){
       if (filter && h.status !== filter) return;
-      if (fibreFilter && fibreEtat(h) !== "avantage") return;
+      // fibreFilter vaut 2 pour « sans SFR », 1 pour « sans Bouygues » : ce sont
+      // les valeurs que rend argumentFibre, la comparaison est donc directe.
+      if (fibreFilter && argumentFibre(h) !== fibreFilter) return;
       addMarker(h);
     });
     renderChips(); renderCityBtn();
@@ -678,7 +688,7 @@
   function blocRappel(h){
     var box = document.createElement("div"); box.className = "rp";
     var t = document.createElement("div"); t.className = "rpT";
-    t.textContent = "À rappeler";
+    t.textContent = "À rappeler";   // majRappel() l'ajuste selon le statut
     box.appendChild(t);
 
     RAPPEL_CHAMPS.forEach(function(c){
@@ -692,6 +702,7 @@
     });
 
     var quand = document.createElement("input");
+    quand.className = "rpQuand";
     quand.type = "datetime-local"; quand.value = h.rappelAt || "";
     quand.addEventListener("input", function(){
       h.rappelAt = quand.value || null; save();
@@ -778,7 +789,12 @@
     var row2 = document.createElement("div"); row2.className = "row";
     var rappel = blocRappel(h);
     function majRappel(){
-      rappel.style.display = h.status === "rappel" ? "flex" : "none";
+      var suivi = SUIVIS[h.status];
+      rappel.style.display = suivi ? "flex" : "none";
+      if (suivi){
+        rappel.querySelector(".rpT").textContent = suivi.titre;
+        rappel.querySelector(".rpQuand").placeholder = suivi.quand;
+      }
     }
     ORDER.forEach(function(k, i){
       var b = document.createElement("button");
@@ -801,7 +817,7 @@
         // Poser « Rappel » ouvre le dossier du foyer : refermer la bulle ici
         // obligerait à rouvrir la maison pour noter un prénom et une heure,
         // alors qu'on est encore devant la porte.
-        if (h.status !== "rappel") map.closePopup();
+        if (!SUIVIS[h.status]) map.closePopup();
         toast(retour ? "→ pas encore visitée" : "→ " + STATUSES[k].label,
               "Annuler", undoLast);
       });
@@ -843,19 +859,25 @@
     var total = document.createElement("button");
     total.className = "chip total" + (filter === null ? " active" : "");
     total.innerHTML = "<span class='dot'></span>" + hs.length + " maisons";
-    total.addEventListener("click", function(){ filter = null; fibreFilter = false; renderAll(); });
+    total.addEventListener("click", function(){ filter = null; fibreFilter = 0; renderAll(); });
     c.appendChild(total);
 
-    var nAv = 0;
-    for (var j = 0; j < hs.length; j++) if (fibreEtat(hs[j]) === "avantage") nAv++;
-    if (nAv){
+    // Les deux arguments, chacun son filtre, dans l'ordre de ce qu'ils valent.
+    [[2, "⚡ Sans SFR", "#D946EF", "Free passe, SFR ne dessert pas — l'argument le plus sûr"],
+     [1, "Sans Bouygues", "#4DA3FF", "Free passe, Bouygues ne dessert pas — petit argument, souvent démenti quand on va vérifier"]
+    ].forEach(function(a){
+      var n = 0;
+      for (var j = 0; j < hs.length; j++) if (argumentFibre(hs[j]) === a[0]) n++;
+      if (!n) return;
       var f = document.createElement("button");
-      f.className = "chip" + (fibreFilter ? " active" : "");
-      f.innerHTML = "<span class='dot' style='background:#D946EF'></span>⚡ Sans SFR " + nAv;
-      f.title = "Free passe, SFR ne dessert pas — l'argument le plus sûr";
-      f.addEventListener("click", function(){ fibreFilter = !fibreFilter; renderAll(); });
+      f.className = "chip" + (fibreFilter === a[0] ? " active" : "");
+      f.innerHTML = "<span class='dot' style='background:" + a[2] + "'></span>" + a[1] + " " + n;
+      f.title = a[3];
+      f.addEventListener("click", function(){
+        fibreFilter = (fibreFilter === a[0]) ? 0 : a[0]; renderAll();
+      });
       c.appendChild(f);
-    }
+    });
     ORDER.forEach(function(k){
       var n = 0;
       for (var i = 0; i < hs.length; i++) if (hs[i].status === k) n++;
@@ -1794,7 +1816,7 @@
     if (!h) return false;
     history.replaceState(null, "", location.pathname);
     if (h.cityId !== data.activeCityId){ data.activeCityId = h.cityId; save(); }
-    filter = null; fibreFilter = false;
+    filter = null; fibreFilter = 0;
     // Le démarrage rappelle renderAll() juste après nous, ce qui rebâtit tous
     // les marqueurs : ouvrir la bulle maintenant reviendrait à l'ouvrir sur un
     // marqueur qui va disparaître. On attend donc la fin du démarrage.

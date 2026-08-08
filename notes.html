@@ -67,6 +67,27 @@
   .chip.active{border-color:var(--n6);color:var(--paper)}
   select.chip{padding:6px 9px}
 
+  /* Le panneau du jour : ce qu'on veut voir en ouvrant la page, avant la liste.
+     C'est l'équivalent lisible de l'alerte — l'alerte sonnante, elle, vient de
+     l'agenda du téléphone. */
+  .brief{margin:16px 0 6px;border-radius:var(--r3);padding:18px 20px;
+    background:linear-gradient(140deg,#123A6B,#0E2A50);border:1px solid #2A5D8F;
+    box-shadow:var(--ombre)}
+  .brief[hidden]{display:none}
+  .brief .t{font-size:10.5px;font-weight:800;letter-spacing:.16em;
+    text-transform:uppercase;color:#8FBEF5}
+  .brief .g{margin:8px 0 0;font-size:23px;font-weight:800;letter-spacing:-.03em;
+    line-height:1.25}
+  .brief .g b{color:#FFD37A}
+  .brief .d{margin:8px 0 0;font-size:13.5px;color:#C6DDF7;line-height:1.6}
+  .brief .b{margin:14px 0 0;display:flex;gap:8px;flex-wrap:wrap}
+  .brief button{font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;
+    border-radius:var(--r1);padding:10px 14px;border:1px solid #3D74B8;
+    background:rgba(255,255,255,.08);color:#fff;
+    transition:background var(--vite),border-color var(--vite)}
+  .brief button:hover{background:rgba(255,255,255,.16);border-color:#6FA3E0}
+  .brief button.cal{background:#fff;color:#123A6B;border-color:#fff}
+
   h3.grp{margin:26px 0 9px;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;
     color:var(--faible);display:flex;align-items:center;gap:8px;font-weight:800}
   h3.grp b{color:var(--paper);font-size:10.5px}
@@ -150,12 +171,20 @@
     <div class="chips" id="chips"></div>
   </header>
 
+  <div class="brief" id="brief" hidden></div>
+
   <main id="liste"></main>
 
   <footer>
     Ces fiches sont celles que tu as remplies sur le terrain, dans la bulle d'une maison
-    tamponnée <b>Rappel</b>. Elles vivent <b>dans ce téléphone</b>, dans la mémoire du
-    navigateur — rien n'est envoyé nulle part, et personne d'autre n'y a accès.
+    tamponnée <b>Rappel</b> ou <b>À repasser</b>. Elles vivent <b>dans ce téléphone</b>,
+    dans la mémoire du navigateur — rien n'est envoyé nulle part, et personne d'autre
+    n'y a accès.
+    <br>
+    <b>📅 Programmer les alertes</b> envoie ces rendez-vous dans l'agenda du téléphone :
+    c'est lui qui sonnera et vibrera à l'heure, même l'application fermée. Aucune
+    notification web, rien à autoriser. Reprogrammer met les rendez-vous à jour au lieu
+    de les dupliquer.
     <br>
     Pense à <a href="tournee.html">exporter ta sauvegarde</a> de temps en temps : effacer
     les données du navigateur les effacerait aussi.
@@ -203,7 +232,14 @@
 
   var data = { cities: [], houses: [], activeCityId: null };
   var lectureSeule = false;      // sauvegarde ouverte depuis un fichier
-  var voirRepasser = false;
+  // Les deux statuts qui ouvrent un dossier. « À repasser » en fait partie : on
+  // y retourne aussi, et savoir ce que le foyer paie sert autant sur le pas de
+  // la porte qu'au téléphone. `type` vaut null (les deux), "rappel" ou "repasser".
+  var SUIVIS = {
+    rappel:   { label: "Rappels",    verbe: "Rappeler",      ic: "📞" },
+    repasser: { label: "À repasser", verbe: "Repasser chez", ic: "↩" }
+  };
+  var type = null;
   var ville = "";
   var recherche = "";
   var lastUndo = null;
@@ -307,7 +343,8 @@
   // ---------- Sélection ----------
   function fiches(){
     var out = data.houses.filter(function(h){
-      if (h.status !== "rappel" && !(voirRepasser && h.status === "repasser")) return false;
+      if (!SUIVIS[h.status]) return false;
+      if (type && h.status !== type) return false;
       if (ville && h.cityId !== ville) return false;
       if (recherche){
         var foin = [h.prenom, h.tel, h.prix, h.note, h.addr, villeDe(h),
@@ -335,6 +372,97 @@
     s.className = "op"; s.style.background = OPS[h.op].color;
     s.textContent = OPS[h.op].label;
     return s;
+  }
+
+  /* ---------- Une vraie alerte, sans notification web ----------
+     Le navigateur ne peut pas sonner quand il est fermé, et les notifications
+     web ne sont pas voulues ici. Le calendrier du téléphone, lui, sait le
+     faire : il vibre, il s'affiche en plein écran sur l'écran verrouillé, hors
+     ligne, sans rien installer. On lui donne donc ce qu'il lit, un .ics.
+
+     L'UID est celui de la maison : réimporter le même rappel met l'événement à
+     jour au lieu d'en créer un second — à condition que SEQUENCE ait augmenté,
+     d'où le compteur. Les dates sont « flottantes », sans fuseau : 18 h 30
+     reste 18 h 30, c'est l'heure qui a été saisie. */
+  var ENC = window.TextEncoder ? new TextEncoder() : null;
+  function icsEchapper(t){
+    return String(t == null ? "" : t)
+      .replace(/\\/g, "\\\\").replace(/;/g, "\\;")
+      .replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
+  }
+  /* Le format impose des lignes de 75 octets au plus, la suite préfixée d'une
+     espace. On compte en octets et non en caractères : « é » en pèse deux. */
+  function icsPlier(ligne){
+    if (!ENC) return ligne;
+    var out = [], cur = "", oct = 0;
+    for (var i = 0; i < ligne.length; i++){
+      var ch = ligne[i], code = ligne.charCodeAt(i);
+      // une paire de substitution (émoji) ne se coupe pas en deux
+      if (code >= 0xD800 && code <= 0xDBFF && i + 1 < ligne.length) ch += ligne[++i];
+      var o = ENC.encode(ch).length;
+      if (oct + o > 73){ out.push(cur); cur = " "; oct = 1; }
+      cur += ch; oct += o;
+    }
+    out.push(cur);
+    return out.join("\r\n");
+  }
+  function d2(n){ return ("0" + n).slice(-2); }
+  function icsLocal(ts){
+    var d = new Date(ts);
+    return d.getFullYear() + d2(d.getMonth()+1) + d2(d.getDate()) + "T" +
+           d2(d.getHours()) + d2(d.getMinutes()) + "00";
+  }
+  function icsUtc(d){
+    return d.getUTCFullYear() + d2(d.getUTCMonth()+1) + d2(d.getUTCDate()) + "T" +
+           d2(d.getUTCHours()) + d2(d.getUTCMinutes()) + d2(d.getUTCSeconds()) + "Z";
+  }
+  function icsDe(hs){
+    var stamp = icsUtc(new Date()), n = 0, l = [
+      "BEGIN:VCALENDAR", "VERSION:2.0", "CALSCALE:GREGORIAN",
+      "PRODID:-//MohaBanger2ouf//Rappels//FR"];
+    hs.forEach(function(h){
+      var ts = tsDe(h.rappelAt);
+      if (ts == null) return;                  // sans date, rien à programmer
+      n++;
+      if (!lectureSeule) h.icsN = (h.icsN || 0) + 1;
+      var suivi = (SUIVIS[h.status] || SUIVIS.rappel).verbe;
+      var qui = h.prenom || "un foyer";
+      var lieu = adresseDe(h) + (villeDe(h) ? ", " + villeDe(h) : "");
+      var det = [];
+      if (h.tel) det.push("Téléphone : " + h.tel);
+      if (h.prix) det.push("Paie aujourd'hui : " + prixTexte(h.prix));
+      if (h.op && OPS[h.op]) det.push("Opérateur actuel : " + OPS[h.op].label);
+      if (h.note) det.push("Note : " + h.note);
+      det.push(lieu);
+      l.push("BEGIN:VEVENT",
+        "UID:" + h.id + "@mohabanger2ouf",
+        "SEQUENCE:" + (h.icsN || 1),
+        "DTSTAMP:" + stamp,
+        "DTSTART:" + icsLocal(ts),
+        "DTEND:" + icsLocal(ts + 15 * 60000),
+        "SUMMARY:" + icsEchapper(suivi + " " + qui + (h.tel ? " — " + h.tel : "")),
+        "LOCATION:" + icsEchapper(lieu),
+        "DESCRIPTION:" + icsEchapper(det.join("\n")),
+        "BEGIN:VALARM", "ACTION:DISPLAY",
+        "DESCRIPTION:" + icsEchapper(suivi + " " + qui),
+        "TRIGGER:PT0S", "END:VALARM", "END:VEVENT");
+    });
+    l.push("END:VCALENDAR");
+    return n ? l.map(icsPlier).join("\r\n") + "\r\n" : null;
+  }
+  function versAgenda(hs, quoi){
+    var texte = icsDe(hs);
+    if (!texte){ toast("Il faut d'abord une date pour programmer une alerte."); return; }
+    if (!lectureSeule) sauver();
+    try{
+      var blob = new Blob([texte], {type: "text/calendar;charset=utf-8"});
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "rappels-" + icsLocal(Date.now()).slice(0, 8) + ".ics";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
+      toast(quoi + " — ouvre le fichier pour l'ajouter à ton agenda.");
+    }catch(e){ toast("Téléchargement refusé par le navigateur."); }
   }
 
   function carte(h){
@@ -388,6 +516,15 @@
       a.className = "tel"; a.href = telHref(h.tel);
       a.textContent = "📞 " + h.tel;
       acts.appendChild(a);
+    } else if (h.status === "repasser"){
+      // Pas de numéro sur une maison à repasser, c'est normal : on y retourne
+      // en personne. L'itinéraire est ce qui sert.
+      var it = document.createElement("a");
+      it.className = "tel"; it.target = "_blank"; it.rel = "noreferrer";
+      it.href = "https://www.google.com/maps/dir/?api=1&destination=" +
+                encodeURIComponent(h.lat + "," + h.lng);
+      it.textContent = "🧭 Itinéraire";
+      acts.appendChild(it);
     } else {
       var s = document.createElement("span");
       s.className = "tel off"; s.textContent = "aucun numéro noté";
@@ -399,6 +536,10 @@
     acts.appendChild(bouton("✕ Refus", "no", function(){
       changerStatut(h, "refus");
     }));
+    if (ts != null)
+      acts.appendChild(bouton("📅", "mini", function(){
+        versAgenda([h], "Alerte programmée");
+      }, "Programmer l'alerte dans l'agenda du téléphone"));
     acts.appendChild(bouton("↻ +1 j", "mini", function(){ reporter(h, 1); }));
     acts.appendChild(bouton("+1 sem.", "mini", function(){ reporter(h, 7); }));
     var edit = document.createElement("div"); edit.className = "edit";
@@ -438,9 +579,10 @@
     return c;
   }
 
-  function bouton(txt, cls, fn){
+  function bouton(txt, cls, fn, titre){
     var b = document.createElement("button");
     b.className = cls; b.textContent = txt;
+    if (titre) b.title = titre;
     if (lectureSeule && cls !== "mini") b.disabled = true;
     b.addEventListener("click", fn);
     return b;
@@ -484,6 +626,7 @@
     document.title = (aTraiter ? "(" + aTraiter + ") " : "") + "Mes rappels — MohaBanger2ouf";
 
     renderChips();
+    renderBrief(fs);
 
     if (!fs.length){ liste.appendChild(vide()); return; }
     GROUPES.forEach(function(g){
@@ -497,22 +640,63 @@
     });
   }
 
+  /* Ce qu'on veut lire en ouvrant la page : ce qui est dû aujourd'hui, et de
+     quoi le programmer dans l'agenda du téléphone en un geste. */
+  function renderBrief(fs){
+    var b = document.getElementById("brief");
+    var duJour = fs.filter(function(h){
+      var g = groupeDe(tsDe(h.rappelAt)); return g === "retard" || g === "auj";
+    });
+    if (!duJour.length){ b.hidden = true; b.innerHTML = ""; return; }
+    var retard = duJour.filter(function(h){ return groupeDe(tsDe(h.rappelAt)) === "retard"; }).length;
+    var prochain = duJour.map(function(h){ return tsDe(h.rappelAt); })
+      .filter(function(t){ return t != null && t >= Date.now(); }).sort()[0];
+    var nomsList = duJour.slice(0, 4).map(function(h){ return h.prenom || "sans prénom"; });
+
+    b.hidden = false;
+    b.innerHTML =
+      '<div class="t">Aujourd\'hui</div>' +
+      '<div class="g"><b>' + duJour.length + '</b> ' +
+        (duJour.length > 1 ? "foyers à recontacter" : "foyer à recontacter") +
+        (retard ? ' <b>dont ' + retard + ' en retard</b>' : "") + '</div>' +
+      '<div class="d">' + nomsList.join(" · ") +
+        (duJour.length > 4 ? " · et " + (duJour.length - 4) + " autres" : "") +
+        (prochain ? "<br>Le prochain à " + quandTexte(prochain) : "") + '</div>' +
+      '<div class="b"></div>';
+    var barre = b.querySelector(".b");
+    var cal = document.createElement("button");
+    cal.className = "cal"; cal.textContent = "📅 Programmer les alertes";
+    cal.title = "Ajoute ces rendez-vous à l'agenda du téléphone : il sonnera à l'heure";
+    cal.addEventListener("click", function(){
+      versAgenda(duJour, duJour.length + " alertes programmées");
+    });
+    barre.appendChild(cal);
+    var tout = fs.filter(function(h){ return tsDe(h.rappelAt) != null; });
+    if (tout.length > duJour.length){
+      var t2 = document.createElement("button");
+      t2.textContent = "Tout l'agenda (" + tout.length + ")";
+      t2.addEventListener("click", function(){
+        versAgenda(tout, tout.length + " alertes programmées");
+      });
+      barre.appendChild(t2);
+    }
+  }
+
   function renderChips(){
     var c = document.getElementById("chips"); c.innerHTML = "";
-    var nRepasser = data.houses.filter(function(h){ return h.status === "repasser"; }).length;
-    if (nRepasser){
+    Object.keys(SUIVIS).forEach(function(k){
+      var n = data.houses.filter(function(h){ return h.status === k; }).length;
+      if (!n) return;
       var b = document.createElement("button");
-      b.className = "chip" + (voirRepasser ? " active" : "");
-      b.innerHTML = "<span class='dot' style='background:" + STATUSES.repasser.color +
-                    "'></span>À repasser " + nRepasser;
-      b.title = "Les maisons à revoir sur place, pas au téléphone";
-      b.addEventListener("click", function(){ voirRepasser = !voirRepasser; rendre(); });
+      b.className = "chip" + (type === k ? " active" : "");
+      b.innerHTML = "<span class='dot' style='background:" + STATUSES[k].color +
+                    "'></span>" + SUIVIS[k].label + " " + n;
+      b.addEventListener("click", function(){ type = (type === k ? null : k); rendre(); });
       c.appendChild(b);
-    }
+    });
     var villes = {};
     data.houses.forEach(function(h){
-      if (h.status === "rappel" || h.status === "repasser")
-        villes[h.cityId] = (villes[h.cityId] || 0) + 1;
+      if (SUIVIS[h.status]) villes[h.cityId] = (villes[h.cityId] || 0) + 1;
     });
     var noms = Object.keys(villes);
     if (noms.length > 1){
