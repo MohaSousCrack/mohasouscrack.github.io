@@ -181,10 +181,10 @@
     dans la mémoire du navigateur — rien n'est envoyé nulle part, et personne d'autre
     n'y a accès.
     <br>
-    <b>📅 Programmer les alertes</b> envoie ces rendez-vous dans l'agenda du téléphone :
-    c'est lui qui sonnera et vibrera à l'heure, même l'application fermée. Aucune
-    notification web, rien à autoriser. Reprogrammer met les rendez-vous à jour au lieu
-    de les dupliquer.
+    <b>📅 Programmer les alertes</b> envoie ces rendez-vous dans l'agenda du téléphone
+    par la feuille de partage : c'est lui qui sonnera et vibrera à l'heure, même
+    l'application fermée. Aucune notification web, rien à autoriser, rien qui quitte
+    l'appareil. Reprogrammer met les rendez-vous à jour au lieu de les dupliquer.
     <br>
     Pense à <a href="tournee.html">exporter ta sauvegarde</a> de temps en temps : effacer
     les données du navigateur les effacerait aussi.
@@ -450,19 +450,44 @@
     l.push("END:VCALENDAR");
     return n ? l.map(icsPlier).join("\r\n") + "\r\n" : null;
   }
-  function versAgenda(hs, quoi){
-    var texte = icsDe(hs);
-    if (!texte){ toast("Il faut d'abord une date pour programmer une alerte."); return; }
-    if (!lectureSeule) sauver();
+  function telechargerIcs(texte, nom, quoi){
     try{
       var blob = new Blob([texte], {type: "text/calendar;charset=utf-8"});
       var a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = "rappels-" + icsLocal(Date.now()).slice(0, 8) + ".ics";
+      a.download = nom;
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
       toast(quoi + " — ouvre le fichier pour l'ajouter à ton agenda.");
     }catch(e){ toast("Téléchargement refusé par le navigateur."); }
+  }
+
+  function versAgenda(hs, quoi){
+    var texte = icsDe(hs);
+    if (!texte){ toast("Il faut d'abord une date pour programmer une alerte."); return; }
+    // Volontairement pas attendu : `navigator.share` exige d'être appelé dans le
+    // geste de l'utilisateur, et attendre l'enregistrement le laisserait expirer.
+    if (!lectureSeule) sauver();
+    var nom = "rappels-" + icsLocal(Date.now()).slice(0, 8) + ".ics";
+
+    /* Le partage natif ouvre la feuille du téléphone, où « Calendrier » figure :
+       l'événement part directement dans l'agenda, sans passer par le dossier
+       Téléchargements ni par un mail, et sans que rien ne quitte l'appareil.
+       Quand le navigateur ne le propose pas — ordinateur, vieux Safari — on
+       retombe sur le téléchargement, qui marche partout. */
+    var fichier = null;
+    try{ fichier = new File([texte], nom, {type: "text/calendar"}); }catch(e){}
+    if (fichier && navigator.canShare && navigator.canShare({files: [fichier]})){
+      navigator.share({files: [fichier], title: "Mes rappels"}).then(function(){
+        toast(quoi + " — choisis « Calendrier » dans le partage.");
+      }, function(e){
+        // Partage refermé par l'utilisateur : ce n'est pas un échec, on se tait.
+        if (e && e.name === "AbortError") return;
+        telechargerIcs(texte, nom, quoi);
+      });
+      return;
+    }
+    telechargerIcs(texte, nom, quoi);
   }
 
   function carte(h){
