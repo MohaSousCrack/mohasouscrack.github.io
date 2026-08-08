@@ -172,12 +172,14 @@
   // l'autre bout de la journée. Rien n'est recopié, rien n'est synchronisé —
   // les deux pages ouvrent le même tiroir.
   var KEY = "tournee-v3", KEY_V2 = "tournee-v2";
+  // La même palette que tournee.html et les jetons CSS : un statut a une seule
+  // couleur, quelle que soit la page qui le dessine.
   var STATUSES = {
-    signe:    {label:"Signé",      color:"#1FA45B"},
-    refus:    {label:"Refus",      color:"#E33A2E"},
-    absent:   {label:"Absent",     color:"#F2A31B"},
-    rappel:   {label:"Rappel",     color:"#12A5BF"},
-    repasser: {label:"À repasser", color:"#9B59B6"},
+    signe:    {label:"Signé",      color:"#22C55E"},
+    refus:    {label:"Refus",      color:"#EF4444"},
+    absent:   {label:"Absent",     color:"#F59E0B"},
+    rappel:   {label:"Rappel",     color:"#22B8CF"},
+    repasser: {label:"À repasser", color:"#A78BFA"},
     avoir:    {label:"À voir",     color:"#6E7A8A"}
   };
   var OPS = {

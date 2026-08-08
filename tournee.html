@@ -58,7 +58,7 @@
   .chip.total .dot{display:none}
 
   #map{flex:1 1 auto;min-height:0}
-  .leaflet-container{background:#DDE3E9;font:inherit}
+  .leaflet-container{background:#EFEBE3;font:inherit}
 
   footer{flex:0 0 auto;background:var(--ink);border-top:1px solid var(--line);
     padding:10px 12px calc(10px + env(safe-area-inset-bottom))}
@@ -89,14 +89,16 @@
     font-weight:700;color:#fff;cursor:pointer}
   .pp .ops button{flex:1;border-radius:8px;padding:7px 2px;font-size:10.5px;font-weight:800;
     color:#fff;border:none;cursor:pointer;opacity:.55}
-  .pp .ops button.sel{opacity:1;outline:2px solid #14161B}
-  .pp input{width:100%;border:1px solid #CBD2DA;border-radius:8px;padding:8px 9px;font-size:13px}
-  .pp .del{background:transparent;border:1px solid #C33;color:#C33;border-radius:8px;
-    padding:7px;font-size:11.5px;font-weight:700;cursor:pointer}
+  .pp .ops button.sel{opacity:1;outline:2px solid #FFFFFF}
+  .pp input{width:100%;border:1px solid var(--n5);background:var(--n1);color:var(--paper);
+    border-radius:8px;padding:8px 9px;font:inherit;font-size:13px;color-scheme:dark}
+  .pp input:focus-visible{outline:none;border-color:var(--route)}
+  .pp .del{background:transparent;border:1px solid #7A2F2F;color:#F5AEA9;border-radius:8px;
+    padding:7px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer}
   .pp .addr{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;
-    color:#333;margin:-2px 0 0}
+    color:var(--paper);margin:-2px 0 0}
   .pp .addr span{flex:1;min-width:0}
-  .pp .addr .cp{flex:0 0 auto;border:1px solid #CBD2DA;background:#fff;color:#555;
+  .pp .addr .cp{flex:0 0 auto;border:1px solid var(--n5);background:var(--n3);color:var(--muted);
     border-radius:7px;padding:4px 7px;font-size:12px;line-height:1;cursor:pointer}
   /* Leaflet pose user-select:none sur tout son conteneur, bulles comprises : un
      appui long sur l'adresse n'ouvrait donc pas « Copier », et le geste filait
@@ -105,20 +107,33 @@
   .leaflet-popup-content,.sheet{-webkit-user-select:text;user-select:text}
   /* Le dossier de rappel : cache tant que le tampon Rappel n'est pas pose,
      pour que la bulle reste courte sur les milliers de maisons ordinaires. */
-  .pp .rp{display:none;flex-direction:column;gap:6px;background:#EAF6F9;
-    border:1px solid #A9D8E2;border-radius:9px;padding:8px}
+  .pp .rp{display:none;flex-direction:column;gap:6px;background:#0B2F38;
+    border:1px solid #17656F;border-radius:9px;padding:8px}
   .pp .rpT{font-size:10.5px;font-weight:800;letter-spacing:.09em;
-    text-transform:uppercase;color:#0B6C80}
+    text-transform:uppercase;color:#9EE7F5}
   .pp .rpQ{display:flex;gap:5px}
-  .pp .rpQ button{flex:1;border:1px solid #A9D8E2;background:#fff;color:#0B6C80;
-    border-radius:7px;padding:6px 2px;font-size:11px;font-weight:700;cursor:pointer}
+  .pp .rpQ button{flex:1;border:1px solid #17656F;background:transparent;color:#9EE7F5;
+    border-radius:7px;padding:6px 2px;font:inherit;font-size:11px;font-weight:700;cursor:pointer}
   .pp .rpL{display:block;text-align:center;font-size:11.5px;font-weight:700;
-    color:#0B6C80;text-decoration:none;padding-top:2px}
-  .pp .fibreTag{font-size:11.5px;font-weight:700;color:#7a4a00;background:#FFF1CC;
-    border:1px solid #F2C46B;border-radius:7px;padding:5px 7px;margin:-3px 0 0}
-  .pp .fibreTag.ok{color:#14532d;background:#E4F5E9;border-color:#9BD3AE}
-  .pp .fibreTag.off{color:#5A6472;background:#EEF1F4;border-color:#C7CFD8}
-  .leaflet-popup-content{margin:10px 12px}
+    color:#9EE7F5;text-decoration:none;padding-top:2px}
+  .pp .fibreTag{font-size:11.5px;font-weight:700;line-height:1.5;color:var(--muted);
+    background:var(--n1);border:1px solid var(--n4);border-radius:8px;padding:6px 8px;margin:-3px 0 0}
+  .pp .fibreTag.fort{color:#F5C6FB;background:#2A0E33;border-color:#A21CAF}
+  .pp .fibreTag.leger{color:#B6D9FF;background:#0E2A44;border-color:#2A5D8F}
+  .pp .fibreTag.ok{color:#9DE8BA;background:#0F2A1B;border-color:#256B3C}
+  .pp .fibreTag.off{color:var(--muted);background:var(--n3);border-color:var(--n5)}
+  .leaflet-popup-content{margin:11px 13px}
+  /* La bulle et les contrôles Leaflet rejoignent la charte sombre du bandeau,
+     posée sur un fond de carte clair : le contraste fait le côté « app ». */
+  .leaflet-popup-content-wrapper{background:var(--n2);color:var(--paper);
+    border:1px solid var(--n5);border-radius:14px;
+    box-shadow:0 14px 44px -14px rgba(0,0,0,.85)}
+  .leaflet-popup-tip{background:var(--n2);border:1px solid var(--n5)}
+  .leaflet-bar a{background:var(--n2);color:var(--paper);border-bottom:1px solid var(--n4)}
+  .leaflet-bar a:hover{background:var(--n3)}
+  .leaflet-control-attribution{background:rgba(12,15,20,.72) !important;
+    color:var(--faible);font-size:10px}
+  .leaflet-control-attribution a{color:var(--muted)}
 
   /* au-dessus des panneaux (z-index 4000) : un message affiche pendant qu'une
      feuille est ouverte doit rester visible, sinon l'action parait sans effet */
@@ -227,8 +242,8 @@
       <div class="note">
         Découpage communal exact : que les bâtiments de la commune, jamais ceux d'à côté.
         Chaque maison arrive avec son adresse, son nombre de logements et les opérateurs
-        qui y commercialisent la fibre. Les <b>⚡ ambrées</b> sont celles où Free passe
-        et où un concurrent au moins ne passe pas.
+        qui y commercialisent la fibre. Les <b>grosses à anneau fuchsia</b> sont celles
+        où Free passe et pas SFR — l'argument le plus sûr sur le pas de la porte.
       </div>
       <button class="bigBtn" id="btnClearAvoir" style="margin-top:10px">🧹 Retirer les maisons non visitées</button>
       <div class="note">Nettoie un mauvais chargement : seules les maisons encore grises partent, tes points coloriés restent.</div>
@@ -315,8 +330,10 @@
 
       <h2>L'anneau des points</h2>
       <div class="note" style="margin-top:0">
-        Il dit <b>qui ne peut pas raccorder</b> ce logement, alors que Free le peut.
-        Plus il est épais et le point gros, plus il manque de concurrents.
+        Il dit <b>ce que vaut l'adresse</b>. Gros point à anneau fuchsia : SFR ne
+        dessert pas, c'est l'argument le plus sûr. Anneau bleu fin : Bouygues manque,
+        petit argument. Un « Orange absent » n'est pas mis en avant : c'est presque
+        toujours un retard de déclaration, pas une absence réelle.
       </div>
       <div class="legendeFibre" id="legendeFibre"></div>
       <div class="note">
@@ -375,12 +392,14 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 (function(){
+  // La même palette que les jetons CSS du site : un point vert doit être du
+  // même vert sur la carte, dans les puces et sur la page des rappels.
   var STATUSES = {
-    signe:    {label:"Signé",      color:"#1FA45B"},
-    refus:    {label:"Refus",      color:"#E33A2E"},
-    absent:   {label:"Absent",     color:"#F2A31B"},
-    rappel:   {label:"Rappel",     color:"#12A5BF"},
-    repasser: {label:"À repasser", color:"#9B59B6"},
+    signe:    {label:"Signé",      color:"#22C55E"},
+    refus:    {label:"Refus",      color:"#EF4444"},
+    absent:   {label:"Absent",     color:"#F59E0B"},
+    rappel:   {label:"Rappel",     color:"#22B8CF"},
+    repasser: {label:"À repasser", color:"#A78BFA"},
     avoir:    {label:"À voir",     color:"#6E7A8A"}
   };
   // « avoir » n'est plus un tampon : c'est l'état gris des maisons pas encore
@@ -428,7 +447,14 @@
   // ---------- Carte ----------
   var canvasRenderer = L.canvas({tolerance: 8});
   var map = L.map("map", {zoomControl:false, preferCanvas:true, renderer: canvasRenderer}).setView([46.6, 2.4], 6);
-  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:19, attribution:"© OpenStreetMap"}).addTo(map);
+  // Fond Voyager (CARTO) : désaturé, noms de rues très lisibles, tuiles retina.
+  // Le fond OSM brut criait plus fort que les points — c'est le fond qui doit se
+  // taire, les données qui doivent parler. Service tiers gratuit : s'il fermait,
+  // revenir à https://tile.openstreetmap.org/{z}/{x}/{y}.png (maxZoom 19).
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+    maxZoom: 20, subdomains: "abcd",
+    attribution: "© OpenStreetMap © CARTO"
+  }).addTo(map);
   L.control.zoom({position:"topright"}).addTo(map);
   var lassoLayer = L.layerGroup().addTo(map);
   var layer = L.layerGroup().addTo(map);
@@ -534,36 +560,30 @@
   // sait pas (maison posee a la main ou chargee depuis OpenStreetMap).
   var FIBRE = [[1,"Free"],[2,"Orange"],[4,"Bouygues"],[8,"SFR"]];
 
-  // Anneau : il dit qui ne peut PAS raccorder ce logement alors que Free le
-  // peut. Quand un seul concurrent manque, on reprend sa couleur — c'est
-  // immédiat à lire. Quand il en manque plusieurs, une teinte dédiée qui fonce
-  // avec le nombre ; l'ambre a été écarté, il se confondait avec l'opérateur
-  // Orange et avec le statut « Absent ».
-  var MANQUE = {
-    2: { c: "#FF7900", nom: "Orange" },      // orange
-    4: { c: "#33A1FD", nom: "Bouygues" },    // bleu
-    8: { c: "#FF1744", nom: "SFR" }          // rouge
-  };
-  var PLUSIEURS = { 2: "#E879F9", 3: "#A21CAF" };   // magenta clair puis foncé
+  // Ce que vaut l'adresse, d'après ce que les relevés faits chez les opérateurs
+  // ont établi : une absence de SFR est un vrai argument (confirmée 105 fois
+  // sur 120 en allant le lui demander), une absence de Bouygues un petit
+  // (démentie 53 fois sur 81), une absence d'Orange n'en est pas un (démentie
+  // 11 fois sur 11). Orange « absent » est donc dessiné comme du complet — et
+  // la bulle explique pourquoi. Avant, la taille du point comptait les trois
+  // manques à égalité : une maison où seul Orange manquait paraissait être la
+  // meilleure occasion du quartier, alors que c'est la moins sûre.
+  function argumentFibre(h){
+    if (h.ops == null || !(h.ops & 1)) return 0;   // sans Free, rien à vendre
+    if (!(h.ops & 8)) return 2;                     // SFR manque : l'argument
+    if (!(h.ops & 4)) return 1;                     // Bouygues manque : léger
+    return 0;
+  }
+  // Fuchsia pour l'argument fort : seule famille qui n'entre en collision ni
+  // avec un statut ni avec une couleur d'opérateur. Bleu Bouygues, fin, pour
+  // le petit argument.
+  var ARG = { 2: { c: "#D946EF", w: 3.5 }, 1: { c: "#4DA3FF", w: 2 } };
 
   function fibreEtat(h){
     if (h.ops == null) return null;
     if (!h.ops) return "sans";
-    if ((h.ops & 1) && (h.ops & 14) !== 14) return "avantage";
+    if (argumentFibre(h) === 2) return "avantage";
     return (h.ops & 1) ? "complet" : "sansfree";
-  }
-  function nbManquants(h){
-    if (h.ops == null || !(h.ops & 1)) return 0;
-    return (!(h.ops & 2)) + (!(h.ops & 4)) + (!(h.ops & 8));
-  }
-  function couleurManque(h){
-    var n = nbManquants(h);
-    if (n === 0) return null;
-    if (n === 1){
-      var bit = !(h.ops & 2) ? 2 : !(h.ops & 4) ? 4 : 8;
-      return MANQUE[bit].c;
-    }
-    return PLUSIEURS[n];
   }
   function fibreListe(h, present){
     return FIBRE.filter(function(o){ return present ? (h.ops & o[0]) : !(h.ops & o[0]); })
@@ -576,14 +596,15 @@
   // parlant : gros = occasion, petit = pas de fibre.
   function ringOf(h){
     if (h.op && OPS[h.op]) return {color: OPS[h.op].color, weight: 3};
-    var c = couleurManque(h);
-    if (c) return {color: c, weight: 2.5 + nbManquants(h) * 0.7};
+    var a = argumentFibre(h);
+    if (a) return {color: ARG[a].c, weight: ARG[a].w};
     if (fibreEtat(h) === "sans") return {color: "#5A6472", weight: 1.5};
     return {color: "#FFFFFF", weight: 1.5};
   }
   function rayonOf(h){
-    var n = nbManquants(h);
-    if (n) return 8 + n;                       // 9, 10 puis 11
+    var a = argumentFibre(h);
+    if (a === 2) return 11;                    // sans SFR : l'occasion, gros
+    if (a === 1) return 9;                     // sans Bouygues : un cran
     return fibreEtat(h) === "sans" ? 6 : 8;
   }
   function renderAll(){
@@ -730,19 +751,23 @@
     var etat = fibreEtat(h);
     if (etat){
       var fb = document.createElement("div"); fb.className = "fibreTag";
+      var arg = argumentFibre(h);
       if (etat === "sans"){
         fb.className += " off";
         fb.textContent = "✕ Pas de fibre à cette adresse";
-      } else if (etat === "avantage"){
-        var manque = fibreListe(h, false);
-        fb.style.borderColor = couleurManque(h);
-        fb.textContent = manque.length > 1
-          ? "⚡ " + manque.length + " concurrents ne peuvent pas raccorder : " +
-            manque.join(", ") + " — Free oui"
-          : "⚡ " + manque[0] + " ne peut pas raccorder ici — Free oui";
+      } else if (arg === 2){
+        fb.className += " fort";
+        fb.textContent = "⚡ SFR ne dessert pas cette adresse" +
+          (!(h.ops & 4) ? ", Bouygues non plus" : "") + " — Free oui";
+      } else if (arg === 1){
+        fb.className += " leger";
+        fb.textContent = "Bouygues ne dessert pas cette adresse — petit argument";
       } else {
         fb.className += " ok";
         fb.textContent = "✓ Fibre : " + fibreListe(h, true).join(", ");
+        // Orange manquant sans relevé chez lui : on le dit tel que c'est.
+        if ((h.ops & 1) && !(h.ops & 2))
+          fb.textContent += " · Orange déclaré absent, presque toujours à tort";
       }
       // Quand un opérateur a ete interroge directement, on le dit : c'est plus
       // recent que le releve trimestriel de l'Arcep.
@@ -759,7 +784,7 @@
       var b = document.createElement("button");
       b.textContent = STATUSES[k].label;
       b.style.background = STATUSES[k].color;
-      if (h.status === k) b.style.outline = "2px solid #14161B";
+      if (h.status === k) b.style.outline = "2px solid #FFFFFF";
       b.addEventListener("click", function(){
         lastUndo = {type:"paint", id:h.id, prev:h.status};
         // Retoucher le statut déjà posé remet la maison en « pas encore visitée ».
@@ -771,7 +796,7 @@
         [row1, row2].forEach(function(r){
           Array.prototype.forEach.call(r.children, function(c){ c.style.outline = ""; });
         });
-        if (!retour) b.style.outline = "2px solid #14161B";
+        if (!retour) b.style.outline = "2px solid #FFFFFF";
         majRappel();
         // Poser « Rappel » ouvre le dossier du foyer : refermer la bulle ici
         // obligerait à rouvrir la maison pour noter un prénom et une heure,
@@ -826,8 +851,8 @@
     if (nAv){
       var f = document.createElement("button");
       f.className = "chip" + (fibreFilter ? " active" : "");
-      f.innerHTML = "<span class='dot' style='background:#F2A31B'></span>⚡ Free devance " + nAv;
-      f.title = "Fibre Free disponible, au moins un concurrent absent";
+      f.innerHTML = "<span class='dot' style='background:#D946EF'></span>⚡ Sans SFR " + nAv;
+      f.title = "Free passe, SFR ne dessert pas — l'argument le plus sûr";
       f.addEventListener("click", function(){ fibreFilter = !fibreFilter; renderAll(); });
       c.appendChild(f);
     }
@@ -847,12 +872,10 @@
     var box = document.getElementById("legendeFibre");
     if (!box) return;
     var cas = [
-      { ops: 1|4|8, txt: "Orange ne peut pas raccorder" },
-      { ops: 1|2|8, txt: "Bouygues ne peut pas" },
-      { ops: 1|2|4, txt: "SFR ne peut pas" },
-      { ops: 1|2,   txt: "deux concurrents ne peuvent pas" },
-      { ops: 1,     txt: "Free est le seul des quatre" },
-      { ops: 15,    txt: "les quatre peuvent raccorder" },
+      { ops: 1|2|4, txt: "SFR ne dessert pas — l'argument le plus sûr" },
+      { ops: 1|2|8, txt: "Bouygues ne dessert pas — petit argument" },
+      { ops: 1|4|8, txt: "Orange déclaré absent : presque toujours faux, traité comme complet" },
+      { ops: 15,    txt: "les quatre desservent" },
       { ops: 0,     txt: "aucune fibre à cette adresse" }
     ];
     box.innerHTML = cas.map(function(k){
@@ -1345,11 +1368,11 @@
       }
     });
     save(); renderAll(); closeSheet();
-    var occasions = pts.filter(function(p){ return (p.ops & 1) && (p.ops & 14) !== 14; }).length;
+    var occasions = pts.filter(function(p){ return (p.ops & 1) && !(p.ops & 8); }).length;
     var sansFibre = pts.filter(function(p){ return !p.ops; }).length;
     toast(pts.length + " maisons : " + ajout + " ajoutées, " + enrichi + " marquées" +
           (deja ? ", " + deja + " à jour" : "") + " — dont ⚡ " + occasions +
-          " où Free devance et " + sansFibre + " sans fibre.");
+          " sans SFR et " + sansFibre + " sans fibre.");
   }
 
   document.getElementById("btnArcep").addEventListener("click", async function(){
