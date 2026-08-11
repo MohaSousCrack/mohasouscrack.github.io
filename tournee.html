@@ -568,14 +568,13 @@
   // sait pas (maison posee a la main ou chargee depuis OpenStreetMap).
   var FIBRE = [[1,"Free"],[2,"Orange"],[4,"Bouygues"],[8,"SFR"]];
 
-  // Ce que vaut l'adresse, d'après ce que les relevés faits chez les opérateurs
-  // ont établi : une absence de SFR est un vrai argument (confirmée 105 fois
-  // sur 120 en allant le lui demander), une absence de Bouygues un petit
-  // (démentie 53 fois sur 81), une absence d'Orange n'en est pas un (démentie
-  // 11 fois sur 11). Orange « absent » est donc dessiné comme du complet — et
-  // la bulle explique pourquoi. Avant, la taille du point comptait les trois
-  // manques à égalité : une maison où seul Orange manquait paraissait être la
-  // meilleure occasion du quartier, alors que c'est la moins sûre.
+  // Ce que vaut l'adresse. Les trois manques ne se valent pas : une absence de
+  // SFR est un vrai argument, une absence de Bouygues un petit, une absence
+  // d'Orange n'en est pas un — il déclare ses ouvertures avec tant de retard
+  // qu'elle est le plus souvent fausse. Orange « absent » est donc dessiné
+  // comme du complet, et la bulle explique pourquoi. Avant, la taille du point
+  // comptait les trois à égalité : une maison où seul Orange manquait
+  // paraissait la meilleure occasion du quartier, alors que c'est la moins sûre.
   function argumentFibre(h){
     if (h.ops == null || !(h.ops & 1)) return 0;   // sans Free, rien à vendre
     if (!(h.ops & 8)) return 2;                     // SFR manque : l'argument
@@ -731,17 +730,10 @@
     return box;
   }
 
-  // Ce que les opérateurs ont répondu eux-mêmes, quand on est allé leur demander.
-  // Ancien format : une simple date, qui ne pouvait venir que de Bouygues.
-  function verifTexte(h){
-    var v = h.verif;
-    if (!v) return "";
-    if (typeof v === "string") v = [["Bouygues", v]];
-    var jour = function(d){ return d ? d.slice(8,10) + "/" + d.slice(5,7) : ""; };
-    var noms = v.map(function(x){ return x[0]; });
-    return " · " + noms.join(" et ") + (noms.length > 1 ? " vérifiés" : " vérifié") +
-           " le " + jour(v[0][1]);
-  }
+  // D'où viennent les chiffres ne s'affiche pas : la bulle dit ce qu'il en est
+  // de l'adresse, pas comment on l'a su. Les corrections, elles, s'appliquent
+  // toujours — c'est arcepVersPoints qui les pose sur le masque.
+  function verifTexte(){ return ""; }
 
   function buildPopup(h){
     var wrap = document.createElement("div"); wrap.className = "pp";
@@ -776,7 +768,7 @@
       } else {
         fb.className += " ok";
         fb.textContent = "✓ Fibre : " + fibreListe(h, true).join(", ");
-        // Orange manquant sans relevé chez lui : on le dit tel que c'est.
+        // Orange annoncé absent : on le signale pour ce que ça vaut.
         if ((h.ops & 1) && !(h.ops & 2))
           fb.textContent += " · Orange déclaré absent, presque toujours à tort";
       }
@@ -864,7 +856,7 @@
 
     // Les deux arguments, chacun son filtre, dans l'ordre de ce qu'ils valent.
     [[2, "⚡ Sans SFR", "#D946EF", "Free passe, SFR ne dessert pas — l'argument le plus sûr"],
-     [1, "Sans Bouygues", "#4DA3FF", "Free passe, Bouygues ne dessert pas — petit argument, souvent démenti quand on va vérifier"]
+     [1, "Sans Bouygues", "#4DA3FF", "Free passe, Bouygues ne dessert pas — petit argument, à confirmer sur place"]
     ].forEach(function(a){
       var n = 0;
       for (var j = 0; j < hs.length; j++) if (argumentFibre(hs[j]) === a[0]) n++;
