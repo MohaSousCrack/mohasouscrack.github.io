@@ -72,6 +72,11 @@
   .stamp .dot{width:11px;height:11px;border-radius:50%}
   .stamp.sel{border-color:transparent;color:#fff}
   .stamp.sel .dot{background:#fff!important}
+  /* Le rapport n'est pas un tampon : bordure pointillée pour qu'on ne le
+     confonde pas avec un statut qu'on poserait sur une maison. */
+  .stamp.rapport{border-style:dashed;color:var(--faible)}
+  .stamp.rapport:hover{color:var(--paper)}
+  .stamp.rapport .dot{width:auto;height:auto;border-radius:0;font-size:13px;line-height:1}
   .actions{display:flex;gap:6px}
   .btn{flex:1;border:1px solid var(--line);background:var(--ink-2);color:var(--muted);
     border-radius:var(--r2);padding:11px 2px;font:inherit;font-size:12.5px;font-weight:600;
@@ -172,6 +177,16 @@
   .bigBtn.danger{border-color:#7A2F2F;background:#2C1416}
   #exportTa{width:100%;height:140px;background:var(--ink-2);color:var(--paper);
     border:1px solid var(--line);border-radius:10px;padding:10px;font-size:11px}
+  #rapTexte{width:100%;height:190px;background:var(--n1);color:var(--paper);
+    border:1px solid var(--line);border-radius:var(--r2);padding:11px;
+    font:inherit;font-size:12px;line-height:1.55;white-space:pre;overflow:auto}
+  .rapChiffres{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:11px}
+  .rapChiffres div{background:var(--ink-2);border:1px solid var(--line);
+    border-radius:var(--r2);padding:10px 8px;text-align:center}
+  .rapChiffres .v{display:block;font-size:22px;font-weight:800;letter-spacing:-.02em;
+    font-variant-numeric:tabular-nums}
+  .rapChiffres .k{font-size:10.5px;color:var(--faible);font-weight:700;
+    text-transform:uppercase;letter-spacing:.06em}
 
   .listRow{display:flex;align-items:center;gap:9px;padding:10px 2px;border-bottom:1px solid var(--line);cursor:pointer}
   .listRow .dot{flex:0 0 auto;width:12px;height:12px;border-radius:50%;border:2.5px solid transparent}
@@ -302,6 +317,25 @@
       </div>
       <div id="listRows" style="margin-top:6px"></div>
       <button class="closeSheet" id="btnCloseList">Fermer</button>
+    </div>
+  </div>
+
+  <!-- Rapport de la journée -->
+  <div class="panel" id="rapportPanel">
+    <div class="sheet">
+      <h2>Rapport de la journée</h2>
+      <div class="rapChiffres" id="rapChiffres"></div>
+      <textarea id="rapTexte" readonly></textarea>
+      <div class="row2" style="margin-top:10px">
+        <button class="btn" id="btnRapCopier">⧉ Copier pour WhatsApp</button>
+        <button class="btn" id="btnRapFichier">⬇ Télécharger (.txt)</button>
+      </div>
+      <div class="note">
+        Les portes signées, à rappeler et à repasser sont détaillées avec leur adresse.
+        Les refus et les absents sont comptés sans être listés — un message qu'on lit
+        sur un téléphone doit tenir en un écran.
+      </div>
+      <button class="closeSheet" id="btnCloseRapport">Fermer</button>
     </div>
   </div>
 
@@ -500,9 +534,10 @@
   // Copier une adresse d'un seul appui, plutôt que de viser du texte au doigt.
   // navigator.clipboard exige une origine sûre : en https il est là, ouvert en
   // fichier local il ne l'est pas, d'où le repli par zone de texte.
-  function copier(t){
+  function copier(t, quoi){
     var dit = function(ok){
-      toast(ok ? "Adresse copiée" : "Copie refusée par le navigateur — sélectionne le texte.");
+      toast(ok ? (quoi || "Adresse") + " copié" + ((quoi || "Adresse").slice(-1) === "e" ? "e" : "")
+               : "Copie refusée par le navigateur — le texte est sélectionné, copie-le à la main.");
     };
     if (navigator.clipboard && navigator.clipboard.writeText){
       navigator.clipboard.writeText(t).then(function(){ dit(true); },
@@ -910,6 +945,14 @@
       b.addEventListener("click", function(){ selected = k; renderStamps(); styleStampHere(); });
       s.appendChild(b);
     });
+    // Cinq tampons dans une grille de trois colonnes : la sixième case était
+    // vide. Le rapport du jour s'y loge, à portée de pouce pendant la tournée.
+    var r = document.createElement("button");
+    r.className = "stamp rapport";
+    r.innerHTML = "<span class='dot' style='background:transparent'>📋</span>Rapport";
+    r.title = "Le récapitulatif de la journée, prêt à envoyer";
+    r.addEventListener("click", ouvrirRapport);
+    s.appendChild(r);
   }
   function styleStampHere(){
     document.getElementById("btnStampHere").style.background = STATUSES[selected].color;
@@ -1787,6 +1830,111 @@
   });
   document.getElementById("btnCloseAbout").addEventListener("click", function(){
     document.getElementById("aboutPanel").style.display = "none";
+  });
+
+  // ---------- Rapport de la journée ----------
+  // Ce qu'un vendeur envoie le soir : ce qu'il a fait, ce qu'il a vendu, et ce
+  // qu'il reste à traiter. Détaillé pour ce qui se suit — signé, rappel,
+  // repasser — compté pour le reste : un message lu sur un téléphone doit
+  // tenir en un écran, et personne ne relit vingt lignes d'absents.
+  var RAP_ICONES = { signe:"✅", refus:"❌", absent:"🚪", rappel:"📞", repasser:"↩" };
+  var RAP_DETAIL = ["signe", "rappel", "repasser"];
+
+  function faitesLeJour(jour){
+    var t0 = new Date(jour); t0.setHours(0, 0, 0, 0);
+    var t1 = t0.getTime() + 86400000;
+    return data.houses.filter(function(h){
+      return h.statusTs && h.statusTs >= t0.getTime() && h.statusTs < t1 &&
+             h.status && h.status !== NEUF;
+    });
+  }
+
+  function ligneFoyer(h){
+    var l = "• " + labelOf(h);
+    var det = [];
+    if (h.prenom) det.push(h.prenom);
+    if (h.tel) det.push(h.tel);
+    if (h.prix) det.push("payait " + h.prix);
+    if (h.op && OPS[h.op]) det.push(OPS[h.op].label);
+    if (h.rappelAt) det.push("le " + h.rappelAt.slice(8, 10) + "/" + h.rappelAt.slice(5, 7) +
+                             " à " + h.rappelAt.slice(11));
+    if (det.length) l += " — " + det.join(", ");
+    if (h.note) l += " (" + h.note + ")";
+    return l;
+  }
+
+  function texteRapport(){
+    var faites = faitesLeJour(Date.now());
+    var d = new Date();
+    var jour = ("0"+d.getDate()).slice(-2) + "/" + ("0"+(d.getMonth()+1)).slice(-2) +
+               "/" + d.getFullYear();
+    if (!faites.length){
+      return { texte: "Tournée du " + jour + "\nAucune porte faite aujourd'hui.",
+               total: 0, ventes: 0, suivis: 0 };
+    }
+    // Par ville : une journée déborde parfois sur deux communes.
+    var parVille = {};
+    faites.forEach(function(h){
+      var c = data.cities.find(function(x){ return x.id === h.cityId; });
+      var n = c ? c.name : "Sans ville";
+      (parVille[n] = parVille[n] || []).push(h);
+    });
+    var villes = Object.keys(parVille).sort();
+    var ventes = faites.filter(function(h){ return h.status === "signe"; }).length;
+    var suivis = faites.filter(function(h){
+      return h.status === "rappel" || h.status === "repasser";
+    }).length;
+
+    var l = ["Tournée du " + jour,
+             faites.length + " portes · " + ventes + (ventes > 1 ? " ventes" : " vente") +
+             (suivis ? " · " + suivis + " à suivre" : "")];
+    villes.forEach(function(v){
+      var hs = parVille[v];
+      l.push("");
+      l.push(villes.length > 1 ? "— " + v + " (" + hs.length + ") —" : "— " + v + " —");
+      ORDER.forEach(function(k){
+        var pts = hs.filter(function(h){ return h.status === k; });
+        if (!pts.length) return;
+        l.push("");
+        l.push(RAP_ICONES[k] + " " + STATUSES[k].label + " : " + pts.length);
+        if (RAP_DETAIL.indexOf(k) >= 0) pts.forEach(function(h){ l.push(ligneFoyer(h)); });
+      });
+    });
+    return { texte: l.join("\n"), total: faites.length, ventes: ventes, suivis: suivis };
+  }
+
+  function ouvrirRapport(){
+    var r = texteRapport();
+    document.getElementById("rapTexte").value = r.texte;
+    document.getElementById("rapChiffres").innerHTML =
+      "<div><span class='v'>" + r.total + "</span><span class='k'>portes</span></div>" +
+      "<div><span class='v' style='color:var(--signe)'>" + r.ventes +
+        "</span><span class='k'>ventes</span></div>" +
+      "<div><span class='v' style='color:var(--rappel)'>" + r.suivis +
+        "</span><span class='k'>à suivre</span></div>";
+    document.getElementById("rapportPanel").style.display = "flex";
+  }
+
+  document.getElementById("btnCloseRapport").addEventListener("click", function(){
+    document.getElementById("rapportPanel").style.display = "none";
+  });
+  document.getElementById("rapportPanel").addEventListener("click", function(e){
+    if (e.target === this) this.style.display = "none";
+  });
+  document.getElementById("btnRapCopier").addEventListener("click", function(){
+    var t = document.getElementById("rapTexte");
+    // Sélectionner d'abord : si le presse-papiers est refusé, le texte est déjà
+    // surligné et un appui long suffit à le copier à la main.
+    t.focus(); t.select();
+    copier(t.value, "Rapport");
+  });
+  document.getElementById("btnRapFichier").addEventListener("click", function(){
+    var d = new Date();
+    var nom = "tournee-" + d.getFullYear() + ("0"+(d.getMonth()+1)).slice(-2) +
+              ("0"+d.getDate()).slice(-2) + ".txt";
+    if (downloadFile(nom, document.getElementById("rapTexte").value,
+                     "text/plain;charset=utf-8"))
+      toast("Rapport téléchargé.");
   });
 
   // ---------- Rappel de sauvegarde ----------
