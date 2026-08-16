@@ -1,4 +1,39 @@
 <!DOCTYPE html>
+<!--
+  MES RAPPELS — le troisième outil, celui du soir.
+  ===========================================================================
+  Reprend les foyers tamponnés « Rappel » ou « À repasser » dans la tournée et
+  les trie par échéance. Aucune donnée n'est copiée : cette page ouvre le même
+  tiroir que tournee.html, la clé localStorage "tournee-v3", sur le même
+  appareil. Deux pages, une seule vérité.
+
+  CE QU'ELLE LIT DANS UNE MAISON
+    status (rappel | repasser), prenom, tel, prix, op, note, addr, rappelAt.
+    `rappelAt` est une date « flottante » au format "2026-08-12T18:30" : sans
+    fuseau, parce que 18 h 30 doit rester 18 h 30, c'est l'heure qui a été
+    saisie sur le pas de la porte. D'où tsDe(), qui la relit à la main plutôt
+    que de laisser Date l'interpréter — ses règles changent avec la forme.
+
+  L'ALERTE
+    Un navigateur ne sonne pas quand il est fermé, et les notifications web ne
+    sont pas voulues ici. C'est donc le calendrier du téléphone qui alerte :
+    la page fabrique un .ics conforme (lignes pliées à 75 octets, échappements
+    RFC 5545, heures flottantes) et le passe au partage natif du système, où
+    figure « Calendrier ». Rien ne transite par un serveur.
+    L'UID d'un événement est l'id de la maison et SEQUENCE augmente à chaque
+    envoi : reprogrammer met à jour au lieu de dupliquer. Ne pas y toucher
+    sans comprendre, c'est ce qui évite les doublons.
+
+  ÉCARTÉ VOLONTAIREMENT
+    Un abonnement webcal:// rafraîchirait l'agenda tout seul, et un lien
+    « ajouter à Google Agenda » supprimerait le fichier — mais les deux
+    exigent que les prénoms, numéros et prix sortent de l'appareil.
+
+  LECTURE SEULE
+    « Ouvrir une sauvegarde » affiche un export .json venu d'un autre appareil
+    sans jamais l'écrire ici : deux exemplaires des mêmes données finiraient
+    par diverger.
+-->
 <html lang="fr">
 <head>
 <meta charset="UTF-8">

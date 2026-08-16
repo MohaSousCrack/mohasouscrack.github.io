@@ -1,4 +1,44 @@
 <!DOCTYPE html>
+<!--
+  MA TOURNÉE — le porte-à-porte sur la carte.
+  ===========================================================================
+  Une page, aucune dépendance à installer, aucun serveur. Leaflet est chargé
+  depuis un CDN ; tout le reste tient ici.
+
+  OÙ VIVENT LES DONNÉES
+    localStorage, clé "tournee-v3", sur l'appareil et nulle part ailleurs.
+    Forme : { cities: [...], houses: [...], activeCityId }
+    Une ville  : { id, name, lat, lng, zoom, insee? }
+    Une maison : { id, cityId, lat, lng, status, statusTs, op, note, addr,
+                   logements, ops, verif, osm, ts,
+                   prenom, tel, prix, rappelAt }   <- le dossier de suivi
+    `ops` est un masque de bits : 1 Free, 2 Orange, 4 Bouygues, 8 SFR.
+    Zéro = aucun des quatre ne commercialise la fibre à cette adresse.
+    `status` vaut signe | refus | absent | rappel | repasser | avoir.
+    « avoir » est l'état gris de départ, pas un tampon qu'on pose.
+
+  CE QUI SE LIT SUR LA CARTE
+    La couleur du point = le statut. L'anneau et la taille = ce que vaut
+    l'adresse : gros anneau fuchsia quand SFR ne dessert pas, anneau bleu fin
+    quand c'est Bouygues, rien de plus quand seul Orange manque — voir
+    argumentFibre() et le commentaire qui l'accompagne, qui explique pourquoi
+    les trois concurrents ne pèsent pas pareil.
+
+  PIÈGES CONNUS, NE PAS LES RÉINTRODUIRE
+    - Leaflet pose user-select:none sur tout son conteneur, bulles comprises.
+      D'où la règle CSS qui le rétablit et le bouton ⧉ à côté de l'adresse.
+    - Ouvrir une bulle dans le même tour que setView() la place d'après la vue
+      d'avant : voir centrerEtOuvrir(), qui attend la fin du mouvement.
+    - Les marqueurs sont dessinés en canvas (preferCanvas) : une commune peut
+      en compter 6 000, des éléments DOM feraient ramer le téléphone.
+    - Les puces sont reconstruites à chaque rendu : garder une référence vers
+      l'une d'elles donne un nœud détaché.
+
+  LES DEUX SENS DE CIRCULATION
+    fibre.html  → ici : #ville=Nom&lat=..&lng=..&insee=..
+    notes.html  → ici : #maison=<id>, ouvre la bulle du foyer
+    ici → fibre.html#q=Nom, et → notes.html
+-->
 <html lang="fr">
 <head>
 <meta charset="UTF-8">

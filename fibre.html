@@ -1,4 +1,37 @@
 <!doctype html>
+<!--
+  CARTE FIBRE — l'éligibilité commune par commune, opérateur par opérateur.
+  ===========================================================================
+  Gabarit rempli par build_carte.py. Quatre jetons y sont remplacés à la
+  génération : celui des données (le GeoJSON des communes), celui du mode site
+  (vrai quand la carte est publiée à côté d'index.html, pour les liens), celui
+  des deux dates du bandeau, et ceux de Leaflet, embarqué pour que la page
+  tienne toute seule. Leurs noms exacts sont dans build_carte.py, à la fin de
+  main() — ne pas les recopier ici : un commentaire qui cite un jeton se fait
+  remplacer comme le reste, et la page a doublé de taille le jour où c'est
+  arrivé.
+
+  À NE PAS REPEINDRE À L'ŒIL
+    L'échelle de couleurs compte cinq paliers d'une seule teinte, avec deux
+    jeux distincts selon le thème (--s0 à --s4). Ils ont été vérifiés :
+    monotonie, écart suffisant entre paliers, contraste du palier extrême sur
+    le fond de carte. En clair elle démarre assez foncé pour rester visible
+    sur un fond presque blanc ; en sombre elle s'arrête avant le bleu nuit.
+    Les changer « pour faire plus moderne » casserait une propriété mesurée.
+
+  LE PIÈGE DE LECTURE D'UNE FICHE
+    Deux niveaux à ne pas confondre : « Fibre posée » est la part des adresses
+    de la commune raccordables, tous opérateurs confondus ; les quatre barres
+    d'opérateurs sont calculées parmi ces adresses raccordables seulement.
+    « Free 100 % » ne veut donc pas dire que toute la commune peut souscrire.
+
+  QUAND LA CARTE EST GRISE
+    Si la combinaison d'opérateurs demandée ne concerne aucune adresse, la
+    mesure vaut zéro partout et la carte devient uniformément grise. Un
+    bandeau le dit — voir #piege dans majHero(), ajouté parce que le cas se
+    produit dès qu'on barre les quatre opérateurs avec « tous les barrés
+    absents », ce qui revient à demander les adresses que personne ne dessert.
+-->
 <html lang="fr">
 <head>
 <meta charset="utf-8">
@@ -1137,7 +1170,7 @@ const SITE = true;
 
 /* Le site est statique : ces dates sont figées à la génération, il ne se met
    pas à jour tout seul. Relancer les scripts les rafraîchit. */
-const MAJ = {"arcep": "2026 T1", "genere": "2026-08-12"};
+const MAJ = {"arcep": "2026 T1", "genere": "2026-08-16"};
 /* index code INSEE -> propriétés, utilisé à chaque redessin */
 const parCode = new Map(F.map(f => [f.properties.c, f.properties]));
 
